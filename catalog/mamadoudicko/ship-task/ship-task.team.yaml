@@ -1,5 +1,5 @@
-team: pr-review
-about: review the open PR, address the feedback, loop until approved, then qa
+team: ship-task
+about: ship a task's PR through review — loop fixes until approved, then qa
 steps:
   - loop:
       until: reviewer approves
