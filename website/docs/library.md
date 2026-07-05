@@ -19,7 +19,19 @@ Bundled skills come with the team. See [Sharing](/guides/sharing) for how it wor
 - [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
 <!-- mmt:catalog:end -->
 
-> This list is auto-generated from the catalog by `scripts/gen-catalog.js` — do not hand-edit between the markers.
+## Available skills
+
+Standalone skills you can install without a team or a fork:
+
+```bash
+mmt skill import catalog/skills/<user>/<skill>
+```
+
+<!-- mmt:skills:start -->
+- [mamadoudicko/github-pr](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/skills/mamadoudicko/github-pr/) — Open a pull request on GitHub, keep it updated with new commits, and set a clear title and description.
+<!-- mmt:skills:end -->
+
+> Both lists are auto-generated from the catalog by `scripts/gen-catalog.js` — do not hand-edit between the markers.
 
 ## Contribute your team
 

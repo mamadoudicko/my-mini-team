@@ -15,16 +15,20 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('../lib/yaml');
 const { normalizeTeam, teamSkills } = require('../lib/model');
+const { descOf } = require('../lib/skills');
 
 const ROOT = path.join(__dirname, '..');
 const CATALOG = path.join(ROOT, 'catalog');
+const SKILLS_CATALOG = path.join(CATALOG, 'skills');
 const START = '<!-- mmt:catalog:start -->';
 const END = '<!-- mmt:catalog:end -->';
+const SKILLS_START = '<!-- mmt:skills:start -->';
+const SKILLS_END = '<!-- mmt:skills:end -->';
 
 const GH_TREE = 'https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/';
 const TARGETS = [
-  { file: path.join(ROOT, 'README.md'), base: 'catalog/' },
-  { file: path.join(ROOT, 'website', 'docs', 'library.md'), base: GH_TREE },
+  { file: path.join(ROOT, 'README.md'), base: 'catalog/', skillsBase: 'catalog/skills/' },
+  { file: path.join(ROOT, 'website', 'docs', 'library.md'), base: GH_TREE, skillsBase: GH_TREE + 'skills/' },
 ];
 
 function dirsIn(dir) {
@@ -40,6 +44,7 @@ function dirsIn(dir) {
 function collectEntries() {
   const entries = [];
   for (const user of dirsIn(CATALOG)) {
+    if (user === 'skills') continue; // catalog/skills/ holds standalone skills, not teams
     for (const teamDir of dirsIn(path.join(CATALOG, user))) {
       const yamlPath = path.join(CATALOG, user, teamDir, teamDir + '.team.yaml');
       if (!fs.existsSync(yamlPath)) {
@@ -64,16 +69,38 @@ function collectEntries() {
   return entries;
 }
 
+// Collect one entry per standalone catalog skill, sorted by <user> then <skill>.
+function collectSkills() {
+  const out = [];
+  for (const user of dirsIn(SKILLS_CATALOG)) {
+    for (const skill of dirsIn(path.join(SKILLS_CATALOG, user))) {
+      const md = path.join(SKILLS_CATALOG, user, skill, 'SKILL.md');
+      if (!fs.existsSync(md)) {
+        process.stderr.write(`warn: ${path.relative(ROOT, md)} not found — skipping ${user}/${skill}\n`);
+        continue;
+      }
+      const desc = descOf(fs.readFileSync(md, 'utf8'));
+      out.push({ user, skill, desc: desc || skill });
+    }
+  }
+  out.sort((a, b) => (a.user === b.user ? a.skill.localeCompare(b.skill) : a.user.localeCompare(b.user)));
+  return out;
+}
+
 function lineFor(e, base) {
   return `- [${e.user}/${e.team}](${base}${e.user}/${e.team}/) — ${e.desc}`;
 }
 
-// Replace the marked region, or return null if the markers are missing.
-function render(current, body) {
-  const s = current.indexOf(START);
-  const e = current.indexOf(END);
+function skillLineFor(e, base) {
+  return `- [${e.user}/${e.skill}](${base}${e.user}/${e.skill}/) — ${e.desc}`;
+}
+
+// Replace the region between start/end markers, or return null if either is missing.
+function render(current, start, end, body) {
+  const s = current.indexOf(start);
+  const e = current.indexOf(end);
   if (s === -1 || e === -1 || e < s) return null;
-  const before = current.slice(0, s + START.length);
+  const before = current.slice(0, s + start.length);
   const after = current.slice(e);
   const middle = body ? '\n' + body + '\n' : '\n';
   return before + middle + after;
@@ -82,6 +109,7 @@ function render(current, body) {
 function main() {
   const check = process.argv.includes('--check');
   const entries = collectEntries();
+  const skillEntries = collectSkills();
   let stale = false;
   let wrote = 0;
 
@@ -91,10 +119,16 @@ function main() {
       continue;
     }
     const current = fs.readFileSync(t.file, 'utf8');
-    const body = entries.map((e) => lineFor(e, t.base)).join('\n');
-    const next = render(current, body);
+    const teamBody = entries.map((e) => lineFor(e, t.base)).join('\n');
+    let next = render(current, START, END, teamBody);
     if (next === null) {
       process.stderr.write(`error: markers ${START} / ${END} missing from ${path.relative(ROOT, t.file)}\n`);
+      process.exit(1);
+    }
+    const skillBody = skillEntries.map((e) => skillLineFor(e, t.skillsBase)).join('\n');
+    next = render(next, SKILLS_START, SKILLS_END, skillBody);
+    if (next === null) {
+      process.stderr.write(`error: markers ${SKILLS_START} / ${SKILLS_END} missing from ${path.relative(ROOT, t.file)}\n`);
       process.exit(1);
     }
     if (next === current) continue;
@@ -114,7 +148,7 @@ function main() {
     process.exit(0);
   }
   if (!wrote) {
-    process.stdout.write(`catalog: up to date (${entries.length} team${entries.length === 1 ? '' : 's'})\n`);
+    process.stdout.write(`catalog: up to date (${entries.length} team${entries.length === 1 ? '' : 's'}, ${skillEntries.length} skill${skillEntries.length === 1 ? '' : 's'})\n`);
   }
 }
 

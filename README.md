@@ -63,6 +63,8 @@ Skill  (a reusable capability definition, referenced by a member; shared across 
 | `mmt delete <team>` | delete a team (all copies) |
 | `mmt skills` | list reusable skills you can plug into a member |
 | `mmt skill new\|edit\|show <name>` | create / edit / view a skill definition |
+| `mmt skill export <name>` | portable token for one skill → `mmt skill import '…'` (no team, no fork) |
+| `mmt skill import '<arg>'` | install one skill from a token, a `SKILL.md`, or `catalog/skills/<user>/<skill>` (`--local`) |
 | `mmt export <team> [--raw]` | portable token (bundles skill definitions) or `--raw` yaml |
 | `mmt import '<token>'` | recreate a team from a token, yaml, or file |
 | `mmt help` | list everything |
@@ -108,6 +110,14 @@ mmt export task-shipper          # prints:  mmt import 'mmt2:…'   (copy the wh
 mmt import 'mmt2:…'              # recreate the team + install its skills
 ```
 
+You can also share **one skill** on its own — no team, no fork:
+
+```bash
+mmt skill export github-pr       # prints:  mmt skill import 'mmts1:…'
+mmt skill import 'mmts1:…'                        # install from the token
+mmt skill import catalog/skills/mamadoudicko/github-pr  # install from the catalog (--local for ./.claude/skills)
+```
+
 ## Observability
 
 `mmt run` is watchable: the workflow *is* the progress bar. You see total elapsed time, per-member time, which loop round it's on, which steps are pending, and when it's **waiting for you** (a human-approval gate).
@@ -128,6 +138,14 @@ Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do n
 <!-- mmt:catalog:start -->
 - [mamadoudicko/task-shipper](catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
 <!-- mmt:catalog:end -->
+
+### Skills
+
+Standalone skills you can install without a team or a fork — `mmt skill import catalog/skills/<user>/<skill>`. Do not hand-edit below.
+
+<!-- mmt:skills:start -->
+- [mamadoudicko/github-pr](catalog/skills/mamadoudicko/github-pr/) — Open a pull request on GitHub, keep it updated with new commits, and set a clear title and description.
+<!-- mmt:skills:end -->
 
 ## License
 

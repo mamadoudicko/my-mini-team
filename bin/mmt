@@ -100,8 +100,10 @@ function skillsList() {
   console.log('\n  ' + C.dim('edit:') + ' ' + C.cyan('mmt skill edit <name>') + '   ' + C.dim('new:') + ' ' + C.cyan('mmt skill new <name>') + '\n');
 }
 
-function skillCmd(sub, name) {
+function skillCmd(sub, name, opts = {}) {
   if (!sub || sub === 'ls' || sub === 'list') return skillsList();
+  if (sub === 'export') return skillExport(name);
+  if (sub === 'import') return skillImport(name, opts);
   if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan(`mmt skill ${sub} <name>`) + '\n'); return; }
 
   if (sub === 'show') {
@@ -121,12 +123,89 @@ function skillCmd(sub, name) {
     spawnEditor(file);
     console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')') + '\n');
   } else {
-    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt skills') + '\n');
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill show|edit|new|export|import <name>') + '  ' + C.dim('· or ') + C.cyan('mmt skills') + '\n');
   }
 }
 
 function skillMissing(name) {
   console.log('\n  ' + C.yellow(`no skill "${name}"`) + '  ' + C.dim('· list them:') + ' ' + C.cyan('mmt skills') + '\n');
+}
+
+// A skill name we're willing to write to disk: no slashes, no path traversal,
+// no absolute paths — just the safe filename charset.
+function safeSkillName(name) {
+  const n = String(name || '').trim();
+  if (!n || n.includes('..') || !/^[a-z0-9._-]+$/.test(n)) return null;
+  return n;
+}
+
+function localSkillPath(name) {
+  return path.join(process.cwd(), '.claude', 'skills', name, 'SKILL.md');
+}
+
+function writeLocalSkill(name, content) {
+  const file = localSkillPath(name);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content);
+  return file;
+}
+
+// Print a copy-paste line that installs this one skill anywhere. Deterministic.
+function skillExport(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill export <name>') + '\n'); return; }
+  const s = skills.resolve(name);
+  if (!s) return skillMissing(name);
+  const token = portable.encodeSkill(s.name, s.content);
+  console.log('\n  ' + C.dim('portable skill token — copy this whole line, run it anywhere to install the skill:') + '\n');
+  console.log('  mmt skill import ' + "'" + token + "'");
+  console.log('');
+}
+
+// Install ONE skill from a token, a local SKILL.md, or a catalog skill dir.
+function skillImport(arg, opts = {}) {
+  let input = arg;
+  if (!input && !process.stdin.isTTY) input = fs.readFileSync(0, 'utf8');
+  if (!input || !input.trim()) {
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan("mmt skill import '<token>'") +
+      C.dim('   · or ') + C.cyan('mmt skill import <SKILL.md | catalog/skills/<user>/<skill>>') +
+      C.dim('   (--local)') + '\n');
+    return;
+  }
+  input = input.trim();
+
+  let name, content;
+  try {
+    if (portable.isSkillToken(input)) {
+      const d = portable.decodeSkill(input);
+      name = d.name;
+      content = d.content;
+    } else {
+      let p = input.replace(/^~/, os.homedir());
+      if (!fs.existsSync(p)) throw new Error('unrecognized input — expected a skill token, a SKILL.md path, or a catalog/skills/<user>/<skill> dir');
+      if (fs.statSync(p).isDirectory()) {
+        const f = path.join(p, 'SKILL.md');
+        if (!fs.existsSync(f)) throw new Error('no SKILL.md in ' + input);
+        name = path.basename(p.replace(/[\\/]+$/, ''));
+        p = f;
+      } else {
+        // A file: a SKILL.md takes its name from its parent dir; else the filename.
+        name = /(^|[\\/])SKILL\.md$/i.test(p) ? path.basename(path.dirname(p)) : path.basename(p).replace(/\.md$/i, '');
+      }
+      content = fs.readFileSync(p, 'utf8');
+    }
+  } catch (e) { console.log('\n  ' + C.red(e.message) + '\n'); return; }
+
+  const safe = safeSkillName(name);
+  if (!safe) { console.log('\n  ' + C.red('unsafe skill name: ' + JSON.stringify(name)) + C.dim('  (must match [a-z0-9._-], no path traversal)') + '\n'); return; }
+
+  const dest = opts.local ? localSkillPath(safe) : skills.mmtSkillPath(safe);
+  if (fs.existsSync(dest) && fs.readFileSync(dest, 'utf8') === content) {
+    console.log('\n  ' + C.dim('already installed (identical): ') + C.blue(safe) + C.dim('  → ' + dest) + '\n');
+    return;
+  }
+  const file = opts.local ? writeLocalSkill(safe, content) : skills.writeMmtSkill(safe, content);
+  console.log('\n  ' + C.green('✔ installed ') + C.blue(safe) + C.dim('  → ' + file) +
+    C.dim('   · plug it in: ') + C.cyan('mmt edit <team> "give a member the ' + safe + ' skill"') + '\n');
 }
 
 function exportCmd(name, opts) {
@@ -348,6 +427,8 @@ function help() {
   ${C.cyan('mmt delete <team>')}          delete a team
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
   ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or new/show)
+  ${C.cyan('mmt skill export <name>')}    portable skill token → mmt skill import '…' (no team, no fork)
+  ${C.cyan("mmt skill import '<arg>'")}   install one skill from a token, a SKILL.md, or catalog/skills/<user>/<skill> (--local)
   ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
   ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
   ${C.dim('flags: --fast · --local (save to this folder instead of global)')}
@@ -386,7 +467,7 @@ function help() {
     else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
     else if (cmd === 'skills') skillsList();
-    else if (cmd === 'skill') skillCmd(args[1], args[2]);
+    else if (cmd === 'skill') skillCmd(args[1], args[2], { local: flags.local });
     else show(cmd); // `mmt <team>` shortcut
   } catch (e) {
     console.error('\n  ' + C.red(e.message) + '\n');
