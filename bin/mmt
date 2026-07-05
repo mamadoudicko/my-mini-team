@@ -1,0 +1,386 @@
+#!/usr/bin/env node
+'use strict';
+const readline = require('readline');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const { C, SYM, startSpinner } = require('../lib/ui');
+const store = require('../lib/store');
+const { shapeLine, workflowBlock } = require('../lib/render');
+const runner = require('../lib/runner');
+const compose = require('../lib/compose');
+const portable = require('../lib/portable');
+const skills = require('../lib/skills');
+const yaml = require('../lib/yaml');
+const { normalizeTeam, teamSkills } = require('../lib/model');
+
+process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); });
+
+function spawnEditor(file) {
+  const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
+  spawnSync(editor, [file], { stdio: 'inherit' });
+}
+
+function home() {
+  const teams = store.loadAll();
+  console.log('\n  ' + C.bold('my mini teams') + '\n');
+  if (!teams.length) {
+    console.log('  ' + C.dim('no teams yet. create one:') + '  ' + C.cyan('mmt new') + '\n');
+    return;
+  }
+  for (const t of teams) {
+    if (t.error) { console.log('  ' + C.red(t.name) + C.dim('  ' + t.error)); continue; }
+    const tag = C.dim('[' + t.scope + ']');
+    const shadowed = store.filesOf(t.name).length > 1 ? C.yellow('  · shadows a global copy') : '';
+    console.log('  ' + C.cyan(t.name.padEnd(16)) + ' ' + tag.padEnd(9) + ' ' + shapeLine(t.team) + shadowed);
+  }
+  console.log('\n  ' + C.dim('run:') + '  ' + C.cyan('mmt run <team> "your task"') +
+    '   ' + C.dim('· see:') + ' ' + C.cyan('mmt show <team>') +
+    '   ' + C.dim('· build:') + ' ' + C.cyan('mmt new') + '\n');
+}
+
+function show(name) {
+  if (!name) {
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt show <team>'));
+    return home();
+  }
+  const team = store.loadTeam(name);
+  if (!team) return notFound(name);
+  console.log('');
+  workflowBlock(team).forEach((l) => console.log(l));
+  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(team));
+  const missing = teamSkills(team).filter((n) => !skills.resolve(n));
+  if (missing.length) {
+    console.log('  ' + C.yellow('unknown skills: ') + missing.join(', ') + C.dim('  (define: mmt skill new <name>)'));
+  }
+  console.log('');
+}
+
+// Auto-launch an interactive Claude Code session (subscription) that runs the
+// /mmt command. Passing the whole command as ONE argv element avoids all shell
+// quoting issues (# and nested quotes).
+function pointer(argsStr) {
+  const seed = '/mmt ' + argsStr;
+  console.log('\n  ' + C.dim('Opening a Claude Code session on your subscription…'));
+  console.log('  ' + C.dim('running: ') + C.cyan(seed) + '\n');
+  const r = spawnSync('claude', [seed], { stdio: 'inherit' });
+  if (r && r.error) {
+    console.log('\n  ' + C.red('`claude` not found on PATH.') + C.dim(' Open Claude Code yourself and run:'));
+    console.log('    ' + C.cyan(seed) + '\n');
+  }
+}
+
+async function run(name, task, opts) {
+  const team = store.loadTeam(name);
+  if (!team) return notFound(name);
+  if (!task) { console.log('\n  ' + C.yellow('give it a task:') + '  ' + C.cyan(`mmt run ${name} "add SMS reminders"`) + '\n'); return; }
+  if (opts.sim) return runner.run(team, task, { sim: true, fast: opts.fast });
+  if (opts.headless) {
+    console.log('  ' + C.yellow('⚠ --headless uses claude -p → Agent SDK credit / API, NOT your subscription.'));
+    return runner.run(team, task, { model: opts.model });
+  }
+  pointer('run ' + name + ' "' + task + '"' + (opts.model ? ' --model ' + opts.model : ''));
+}
+
+function notFound(name) {
+  console.log('\n  ' + C.red(`no team "${name}"`) + '  ' + C.dim('· see your teams:') + ' ' + C.cyan('mmt') + '\n');
+}
+
+function skillsList() {
+  const list = skills.list();
+  console.log('\n  ' + C.bold('skills') + C.dim('  — reusable capabilities you can plug into a member') + '\n');
+  if (!list.length) {
+    console.log('  ' + C.dim('none yet. create one:') + '  ' + C.cyan('mmt skill new <name>') + '\n');
+    return;
+  }
+  for (const s of list) {
+    console.log('  ' + C.blue(s.name.padEnd(18)) + ' ' + C.dim('[' + s.source + ']').padEnd(11) + ' ' + C.dim(s.description || ''));
+  }
+  console.log('\n  ' + C.dim('edit:') + ' ' + C.cyan('mmt skill edit <name>') + '   ' + C.dim('new:') + ' ' + C.cyan('mmt skill new <name>') + '\n');
+}
+
+function skillCmd(sub, name) {
+  if (!sub || sub === 'ls' || sub === 'list') return skillsList();
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan(`mmt skill ${sub} <name>`) + '\n'); return; }
+
+  if (sub === 'show') {
+    const s = skills.resolve(name);
+    if (!s) return skillMissing(name);
+    console.log('\n  ' + C.blue(name) + C.dim('  [' + s.source + ']  ' + s.file) + '\n\n' + s.content + '\n');
+  } else if (sub === 'edit') {
+    const s = skills.resolve(name);
+    if (!s) { console.log('\n  ' + C.yellow(`no skill "${name}"`) + C.dim('  · create it: ') + C.cyan('mmt skill new ' + name) + '\n'); return; }
+    spawnEditor(s.file);
+    console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
+  } else if (sub === 'new') {
+    const existing = skills.resolve(name);
+    if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
+    const template = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n\nDescribe what this skill does and how a member should use it.\n`;
+    const file = skills.writeMmtSkill(name, template);
+    spawnEditor(file);
+    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')') + '\n');
+  } else {
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt skills') + '\n');
+  }
+}
+
+function skillMissing(name) {
+  console.log('\n  ' + C.yellow(`no skill "${name}"`) + '  ' + C.dim('· list them:') + ' ' + C.cyan('mmt skills') + '\n');
+}
+
+function exportCmd(name, opts) {
+  const raw = store.loadRaw(name);
+  if (!raw) return notFound(name);
+  if (opts.raw) {
+    console.log('\n' + raw);
+    console.log(C.dim('  # save as a *.team.yaml, or:  mmt import <file>') + '\n');
+    return;
+  }
+  const team = normalizeTeam(yaml.parse(raw));
+  const bundled = [];
+  const missing = [];
+  for (const n of teamSkills(team)) {
+    const s = skills.resolve(n);
+    if (s) bundled.push({ name: n, content: s.content });
+    else missing.push(n);
+  }
+  const token = portable.encodeBundle(raw, bundled);
+  console.log('\n  ' + C.dim('portable token — copy this whole line, run it anywhere to recreate the team:') + '\n');
+  console.log('  mmt import ' + "'" + token + "'");
+  if (bundled.length) console.log('\n  ' + C.dim('bundled ' + bundled.length + ' skill(s): ') + bundled.map((b) => C.blue(b.name)).join(', '));
+  if (missing.length) console.log('\n  ' + C.yellow('not bundled (no definition found): ') + missing.join(', '));
+  console.log('\n  ' + C.dim('readable form:') + '  ' + C.cyan('mmt export ' + name + ' --raw') + '\n');
+}
+
+function importCmd(arg, opts) {
+  let input = arg;
+  if (!input && !process.stdin.isTTY) input = fs.readFileSync(0, 'utf8');
+  if (!input || !input.trim()) {
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan("mmt import '<token>'") + C.dim('   · or ') + C.cyan('mmt import <file>') + C.dim('   · or pipe yaml') + '\n');
+    return;
+  }
+  input = input.trim();
+  let yamlText, bundled = [];
+  try {
+    if (portable.isToken(input)) { const d = portable.decode(input); yamlText = d.yaml; bundled = d.skills || []; }
+    else if (/^team:/m.test(input)) yamlText = input;                 // raw yaml
+    else if (fs.existsSync(input)) yamlText = fs.readFileSync(input, 'utf8'); // file
+    else throw new Error('unrecognized input — expected a token, a team yaml, or a file path');
+  } catch (e) { console.log('\n  ' + C.red(e.message) + '\n'); return; }
+
+  let team;
+  try { team = normalizeTeam(yaml.parse(yamlText)); }
+  catch (e) { console.log('\n  ' + C.red('invalid team: ' + e.message) + '\n'); return; }
+
+  const installed = [];
+  for (const s of bundled) {
+    if (s && s.name && s.content && !skills.resolve(s.name)) { skills.writeMmtSkill(s.name, s.content); installed.push(s.name); }
+  }
+
+  const file = store.saveTeam(team.team, yamlText, { local: opts.local });
+  console.log('');
+  workflowBlock(team).forEach((l) => console.log(l));
+  console.log('\n  ' + C.green('✔ imported ') + C.cyan(team.team) + C.dim('  → ' + file));
+  if (installed.length) console.log('  ' + C.dim('installed skills: ') + installed.map((n) => C.blue(n)).join(', '));
+  console.log('');
+}
+
+function delTeam(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt delete <team>') + '\n'); return; }
+  const files = store.deleteTeam(name);
+  if (!files.length) return notFound(name);
+  console.log('\n  ' + C.green('✔ deleted ') + C.cyan(name) + C.dim('  (' + files.length + ' file' + (files.length > 1 ? 's' : '') + ')'));
+  files.forEach((f) => console.log('    ' + C.dim(f)));
+  console.log('');
+}
+
+function ask(rl, q) {
+  return new Promise((r) => {
+    try { rl.question(q, (a) => r(a.trim())); }
+    catch (e) { r(''); } // stdin closed (e.g. piped EOF) -> treat as enter/save
+  });
+}
+
+// Collect multiple lines (so a pasted multi-line description is kept whole).
+// Submits on an empty line.
+function askMultiline(rl, header) {
+  return new Promise((resolve) => {
+    process.stdout.write(header);
+    const lines = [];
+    const onLine = (line) => {
+      if (line.trim() === '') { rl.removeListener('line', onLine); resolve(lines.join('\n').trim()); }
+      else lines.push(line);
+    };
+    rl.on('line', onLine);
+    rl.once('close', () => { rl.removeListener('line', onLine); resolve(lines.join('\n').trim()); });
+  });
+}
+
+function preview(yamlText) {
+  const team = normalizeTeam(yaml.parse(yamlText));
+  console.log('');
+  workflowBlock(team).forEach((l) => console.log(l));
+  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(team) + '\n');
+  return team;
+}
+
+// Text-first: describe the workflow in plain words, the agent composes it,
+// then refine by talking. No form.
+const DESC_TEMPLATE =
+`# Describe how your team works, in plain words. Save and close to compose.
+# Lines starting with # are ignored.
+#
+# example:
+# strategist plans, coder builds and opens a PR and updates the ticket,
+# reviewer comments on github and loops with the coder until approved,
+# then qa runs tests and posts the results
+
+`;
+
+function editorInput(template) {
+  const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
+  const tmp = path.join(os.tmpdir(), 'mmt-desc-' + process.pid + '.md');
+  fs.writeFileSync(tmp, template);
+  spawnSync(editor, [tmp], { stdio: 'inherit' });
+  let content = '';
+  try { content = fs.readFileSync(tmp, 'utf8'); } catch (e) {}
+  try { fs.unlinkSync(tmp); } catch (e) {}
+  return content.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n').trim();
+}
+
+async function newTeam(rawArg, opts = {}) {
+  if (!opts.headless) return pointer('new' + (rawArg ? ' "' + rawArg + '"' : '') + (opts.local ? ' --local' : ''));
+  console.log('\n  ' + C.bold('compose a mini team') + C.dim('  — describe how your team works, in plain words') +
+    C.dim(opts.local ? '  [local]' : '  [global]') + '\n');
+  let text = rawArg;
+  if (!text) {
+    if (process.stdin.isTTY) {
+      console.log(C.dim('  opening your editor — write the description, then save and close to compose.') + '\n');
+      text = editorInput(DESC_TEMPLATE);
+    } else {
+      text = fs.readFileSync(0, 'utf8').split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n').trim();
+    }
+  }
+  if (!text) { console.log('\n  ' + C.dim('nothing to compose.') + '\n'); return; }
+
+  let y;
+  try {
+    const stop = startSpinner('composing your team…');
+    y = await compose.compose(text);
+    stop();
+  } catch (e) { return composeError(e); }
+
+  if (!process.stdin.isTTY) {
+    const team = preview(y);
+    const file = store.saveTeam(team.team, y, { local: opts.local });
+    console.log('  ' + C.green('✔ saved ') + C.dim(file) + '\n');
+    return;
+  }
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  await refine(rl, y, { local: opts.local });
+}
+
+async function editCmd(name, instruction, opts = {}) {
+  const file = store.fileOf(name);
+  if (!file) return notFound(name);
+  if (!opts.headless) return pointer('edit ' + name + (instruction ? ' "' + instruction + '"' : ''));
+  let y = store.loadRaw(name);
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  if (instruction) {
+    try {
+      const stop = startSpinner('updating…');
+      y = await compose.edit(y, instruction);
+      stop();
+    } catch (e) { rl.close(); return composeError(e); }
+  } else {
+    console.log('\n  ' + C.bold('editing ') + C.cyan(name) + C.dim('  — describe changes in plain words'));
+  }
+  await refine(rl, y, { file });
+}
+
+// Shared refine loop: show the workflow, take a plain-language change, redraw.
+async function refine(rl, y, saveTo) {
+  while (true) {
+    const team = preview(y);
+    const ans = await ask(rl, C.cyan('  change it in words, or press enter to save: '));
+    if (!ans) {
+      rl.close();
+      const file = saveTo.file
+        ? store.saveAt(saveTo.file, y)
+        : store.saveTeam(team.team, y, { local: saveTo.local });
+      console.log('\n  ' + C.green('✔ saved ') + C.dim(file));
+      console.log('  ' + C.dim('run it:') + '  ' + C.cyan(`mmt run ${team.team} "your task"`) + '\n');
+      return;
+    }
+    try {
+      const stop = startSpinner('updating…');
+      y = await compose.edit(y, ans);
+      stop();
+    } catch (e) { console.log('  ' + C.red(e.message)); }
+  }
+}
+
+function composeError(e) {
+  console.log('\n  ' + C.red(e.message));
+  console.log('  ' + C.dim('this uses the `claude` CLI to compose. make sure `claude` runs in this shell.') + '\n');
+}
+
+function help() {
+  console.log(`
+  ${C.bold('mmt')} ${C.dim('— compose, reuse, and run your mini teams (agent workflows)')}
+
+  ${C.cyan('mmt')}                        home: discover your teams
+  ${C.cyan('mmt show <team>')}            see a team's full workflow (steps · skills · loops)
+  ${C.cyan('mmt run <team> "task"')}      run on your subscription → shows the /mmt command for Claude Code
+  ${C.dim('                            --model <opus|sonnet|haiku> · --sim (offline, no cost) · --headless (off-sub)')}
+  ${C.cyan('mmt new ["describe it"]')}    compose a team → runs on your subscription in Claude Code (--local for this folder)
+  ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
+  ${C.cyan('mmt delete <team>')}          delete a team
+  ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
+  ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or new/show)
+  ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
+  ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
+  ${C.dim('flags: --fast · --local (save to this folder instead of global)')}
+`);
+}
+
+(async function main() {
+  const a = process.argv.slice(2);
+  const flags = { fast: false, sim: false, local: false, help: false, raw: false, headless: false, model: null };
+  const args = [];
+  let endFlags = false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    if (endFlags) { args.push(x); }
+    else if (x === '--') endFlags = true;
+    else if (x === '--fast') flags.fast = true;
+    else if (x === '--sim') flags.sim = true;
+    else if (x === '--headless') flags.headless = true;
+    else if (x === '--local') flags.local = true;
+    else if (x === '--global') { /* default */ }
+    else if (x === '--raw' || x === '--yaml') flags.raw = true;
+    else if (x === '--help' || x === '-h') flags.help = true;
+    else if (x === '--model') flags.model = a[++i] || null;
+    else if (x.startsWith('--')) { /* ignore unknown long flag */ }
+    else args.push(x); // positional (incl. values beginning with a single '-')
+  }
+  const cmd = args[0];
+  try {
+    if (flags.help || cmd === 'help') help();
+    else if (!cmd || cmd === 'ls' || cmd === 'home') home();
+    else if (cmd === 'show') show(args[1]);
+    else if (cmd === 'run') await run(args[1], args.slice(2).join(' '), { fast: flags.fast, sim: flags.sim, headless: flags.headless, model: flags.model });
+    else if (cmd === 'new') await newTeam(args.slice(1).join(' '), { local: flags.local, headless: flags.headless });
+    else if (cmd === 'edit') await editCmd(args[1], args.slice(2).join(' '), { headless: flags.headless });
+    else if (cmd === 'delete' || cmd === 'rm') delTeam(args[1]);
+    else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
+    else if (cmd === 'import') importCmd(args[1], { local: flags.local });
+    else if (cmd === 'skills') skillsList();
+    else if (cmd === 'skill') skillCmd(args[1], args[2]);
+    else show(cmd); // `mmt <team>` shortcut
+  } catch (e) {
+    console.error('\n  ' + C.red(e.message) + '\n');
+    process.exit(1);
+  }
+})();

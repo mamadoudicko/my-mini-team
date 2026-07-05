@@ -1,0 +1,27 @@
+team: ship-feature
+about: my way to ship a feature end to end
+steps:
+  - member: strategist
+    does: turn the task into a short technical plan
+
+  - member: coder
+    does: implement the plan
+    skills: [github-pr, ticket-status]
+
+  - loop:
+      until: reviewer approves
+      max_rounds: 3
+      steps:
+        - member: reviewer
+          does: review the diff on the PR
+          skills: [github-comment]
+        - member: coder
+          does: address the review comments
+          skills: [github-pr]
+
+  - member: qa
+    does: run the tests and exercise the change
+    skills: [run-tests, github-post]
+
+  - member: release-notes
+    does: draft the release notes
