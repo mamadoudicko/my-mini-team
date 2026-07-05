@@ -32,8 +32,8 @@ Skills are **never applied to everyone by default.** A member has only the skill
 By talking:
 
 ```bash
-mmt edit ship-feature "give the coder a deploy skill"
-mmt edit ship-feature "the reviewer should also post on github"
+mmt edit task-shipper "give the coder a deploy skill"
+mmt edit task-shipper "the reviewer should also post on github"
 ```
 
 Or in the team file:

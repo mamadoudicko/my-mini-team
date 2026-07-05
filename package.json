@@ -4,7 +4,7 @@
   "description": "Compose, reuse, and run your own agent workflows (mini teams). Name them, run them on any task, watch each step.",
   "bin": { "mmt": "bin/mmt" },
   "scripts": {
-    "demo": "node bin/mmt run ship-feature \"add SMS reminders to booking confirmations\"",
+    "demo": "node bin/mmt run task-shipper \"add SMS reminders to booking confirmations\"",
     "catalog": "node scripts/gen-catalog.js"
   },
   "license": "MIT"
