@@ -1,5 +1,9 @@
 # my-mini-team
 
+[![npm](https://img.shields.io/npm/v/@mamadoudicko/mmt?color=cb3837&logo=npm)](https://www.npmjs.com/package/@mamadoudicko/mmt)
+[![node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Compose your own agent workflows, reuse them by name, run them on any task, and watch every step.**
 
 > Stop doing the work. Architect the team that does it.
@@ -14,7 +18,7 @@ You fine-tune reusable **Teams** with the `mmt` CLI, then run them on any task. 
   <img src="assets/architecture.png" alt="mmt architecture — You → mmt CLI → Team (Members + Loops) → Skills, run via a Team Lead as Claude subagents, shared via the Catalog" width="640">
 </p>
 
-> **Status: v0.1 UX prototype.** Everything below works, but a *run* is currently **simulated** (fake PR/timings) so the experience can be felt end to end. Wiring members to real Claude Code subagents is the next step.
+> **v0.1** — composing, editing, sharing, and the live step-tracker experience are all real and work today. A *run* currently **simulates** execution (fake PR/timings) so you can feel the full flow end to end; wiring members to real Claude Code subagents is the next step and lands soon.
 
 ---
 
