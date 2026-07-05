@@ -1,11 +1,28 @@
 {
-  "name": "my-mini-team",
+  "name": "@mamadoudicko/mmt",
   "version": "0.1.0",
   "description": "Compose, reuse, and run your own agent workflows (mini teams). Name them, run them on any task, watch each step.",
   "bin": { "mmt": "bin/mmt" },
+  "files": [
+    "bin",
+    "lib",
+    "scripts",
+    "teams",
+    "skills",
+    ".claude/commands",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": { "node": ">=18" },
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "demo": "node bin/mmt run task-shipper \"add SMS reminders to booking confirmations\"",
     "catalog": "node scripts/gen-catalog.js"
   },
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "git+https://github.com/mamadoudicko/my-mini-team.git" },
+  "homepage": "https://mamadoudicko.github.io/my-mini-team/",
+  "bugs": { "url": "https://github.com/mamadoudicko/my-mini-team/issues" },
+  "keywords": ["cli", "agent", "workflow", "claude", "claude-code", "team", "subagents"],
   "license": "MIT"
 }

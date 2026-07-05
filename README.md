@@ -20,13 +20,25 @@ You fine-tune reusable **Teams** with the `mmt` CLI, then run them on any task. 
 
 ## Install
 
-Node 18+. Zero dependencies. Composing (`new`/`edit`) uses your local `claude` CLI.
+Node 18+. Zero dependencies. Composing (`new`/`edit`) and running use your local `claude` CLI.
+
+```bash
+npm i -g @mamadoudicko/mmt      # puts `mmt` on your PATH
+# …or run it without installing:
+npx @mamadoudicko/mmt
+```
+
+Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` and seeds the starter skills and teams into `~/.my-mini-team/` (missing files only — it never overwrites your edits). Opt out with `MMT_NO_POSTINSTALL=1`.
+
+<details>
+<summary>Install from source (for contributing)</summary>
 
 ```bash
 git clone https://github.com/mamadoudicko/my-mini-team
 cd my-mini-team
 npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 ```
+</details>
 
 ## Quick start
 
