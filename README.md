@@ -104,6 +104,8 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 
 `mmt run` is watchable: the workflow *is* the progress bar. You see total elapsed time, per-member time, which loop round it's on, which steps are pending, and when it's **waiting for you** (a human-approval gate).
 
+**Opt-in run audit.** Add a `reporter` member (plugging the `publish-report` skill), or set `report: github` on a team, and a run posts a concise audit — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a collapsible comment on the PR. It is strictly opt-in: teams without a `reporter`/`report: github` post nothing. `pr-review` ships with it as the example.
+
 ## Concepts recap
 
 - **Team** = a workflow you name and reuse.
