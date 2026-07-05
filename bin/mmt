@@ -57,13 +57,18 @@ function show(name) {
   console.log('');
 }
 
-// Point the user to the subscription runtime (the /mmt command inside Claude Code).
+// Auto-launch an interactive Claude Code session (subscription) that runs the
+// /mmt command. Passing the whole command as ONE argv element avoids all shell
+// quoting issues (# and nested quotes).
 function pointer(argsStr) {
-  console.log('\n  ' + C.bold('Runs on your subscription, inside Claude Code.'));
-  console.log('  ' + C.dim('Open a Claude Code session and run:') + '\n');
-  console.log('    ' + C.cyan('/mmt ' + argsStr) + '\n');
-  console.log('  ' + C.dim('offline preview (no cost): ') + C.cyan('… --sim') +
-    '   ' + C.dim('· force off-subscription claude -p: ') + C.cyan('--headless') + '\n');
+  const seed = '/mmt ' + argsStr;
+  console.log('\n  ' + C.dim('Opening a Claude Code session on your subscription…'));
+  console.log('  ' + C.dim('running: ') + C.cyan(seed) + '\n');
+  const r = spawnSync('claude', [seed], { stdio: 'inherit' });
+  if (r && r.error) {
+    console.log('\n  ' + C.red('`claude` not found on PATH.') + C.dim(' Open Claude Code yourself and run:'));
+    console.log('    ' + C.cyan(seed) + '\n');
+  }
 }
 
 async function run(name, task, opts) {
