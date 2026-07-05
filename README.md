@@ -113,6 +113,14 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 - **Loop** = a step group that repeats until a condition (bounded by `max_rounds`).
 - **Skill** = a reusable capability, referenced by members, shared across teams.
 
+## Catalog
+
+Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do not hand-edit below.
+
+<!-- mmt:catalog:start -->
+- [mamadoudicko/pr-review](catalog/mamadoudicko/pr-review/) — review the open PR, address the feedback, loop until approved, then qa
+<!-- mmt:catalog:end -->
+
 ## License
 
 MIT

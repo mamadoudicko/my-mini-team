@@ -161,11 +161,11 @@ function importCmd(arg, opts) {
     return;
   }
   input = input.trim();
-  let yamlText, bundled = [];
+  let yamlText, bundled = [], fromFile = null;
   try {
     if (portable.isToken(input)) { const d = portable.decode(input); yamlText = d.yaml; bundled = d.skills || []; }
     else if (/^team:/m.test(input)) yamlText = input;                 // raw yaml
-    else if (fs.existsSync(input)) yamlText = fs.readFileSync(input, 'utf8'); // file
+    else if (fs.existsSync(input)) { yamlText = fs.readFileSync(input, 'utf8'); fromFile = input; } // file
     else throw new Error('unrecognized input — expected a token, a team yaml, or a file path');
   } catch (e) { console.log('\n  ' + C.red(e.message) + '\n'); return; }
 
@@ -176,6 +176,15 @@ function importCmd(arg, opts) {
   const installed = [];
   for (const s of bundled) {
     if (s && s.name && s.content && !skills.resolve(s.name)) { skills.writeMmtSkill(s.name, s.content); installed.push(s.name); }
+  }
+
+  if (fromFile) {
+    for (const name of teamSkills(team)) {
+      if (name.includes('/') || name.startsWith('~')) continue;      // path/~ refs
+      if (skills.resolve(name)) continue;                            // never overwrite
+      const p = path.join(path.dirname(fromFile), 'skills', name, 'SKILL.md');
+      if (fs.existsSync(p)) { skills.writeMmtSkill(name, fs.readFileSync(p, 'utf8')); installed.push(name); }
+    }
   }
 
   const file = store.saveTeam(team.team, yamlText, { local: opts.local });
