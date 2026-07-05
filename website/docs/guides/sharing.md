@@ -10,7 +10,7 @@ Teams are portable objects. Share them two ways: a **token** (quick, one person 
 ## Token: export / import
 
 ```bash
-mmt export task-shipper          # prints:  mmt import 'mmt2:…'
+mmt export spec-to-prod          # prints:  mmt import 'mmt2:…'
 ```
 
 The token is deterministic and **bundles the team's skill definitions**, so it recreates exactly on another machine. Send the whole `mmt import '…'` line; the recipient runs it:

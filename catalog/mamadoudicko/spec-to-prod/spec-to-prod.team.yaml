@@ -1,8 +1,8 @@
-team: task-shipper
-about: ship a task end to end — plan, build, review loop, qa, release notes
+team: spec-to-prod
+about: take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 steps:
   - member: strategist
-    does: turn the task into a short technical plan
+    does: turn the spec into a short technical plan
 
   - member: coder
     does: implement the plan
@@ -23,5 +23,6 @@ steps:
     does: run the tests and exercise the change
     skills: [run-tests, github-post]
 
-  - member: release-notes
-    does: draft the release notes
+  - member: reporter
+    does: publish a concise run audit as a collapsible comment on the PR
+    skills: [publish-report]

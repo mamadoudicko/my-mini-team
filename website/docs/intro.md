@@ -15,7 +15,7 @@ title: What is my-mini-team?
 Instead of prompting one agent over and over, you **describe a team once** — a few roles (members), the skills they use, and the order they work in — and then **run that team on any task**. It runs on your Claude subscription, as sub-agents, and you watch every step.
 
 ```
-mmt run task-shipper "add SMS reminders to booking confirmations"
+mmt run spec-to-prod "add SMS reminders to booking confirmations"
 ```
 
 A team is just a small, readable file. You compose it by talking, reuse it by name, and share it so others can install it in one command.
