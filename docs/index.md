@@ -43,15 +43,15 @@ Compose your own agent **workflows** (teams), run them on any task, and share th
 
 ## mmt library
 
-Starter teams (run with `mmt run <team> "your task"`):
+Community mini-teams, auto-generated from the [`catalog/`](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog) folder (see [#8](https://github.com/mamadoudicko/my-mini-team/issues/8)). **Do not hand-edit between the markers** — the generator rewrites this list (and the README) from the catalog.
 
-| Team | What it does |
-| --- | --- |
-| `ship-feature` | from a task to a shipped, reviewed PR |
-| `dev` | plan → code → review/fix loop → qa (generic coding task) |
-| `pr-review` | review the open PR, address the feedback, loop until approved, then qa |
-| `idea-to-issue` | turn a raw idea into a well-scoped GitHub issue, challenged until it is implementable right the first time |
+<!-- mmt:catalog:start -->
+- [mamadoudicko/ship-feature](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/ship-feature/) — from a task to a shipped, reviewed PR
+- [mamadoudicko/dev](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/dev/) — plan → code → review/fix loop → qa
+- [mamadoudicko/pr-review](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/pr-review/) — review the open PR, address the feedback, loop until approved, then qa
+- [mamadoudicko/idea-to-issue](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-issue/) — turn a raw idea into a well-scoped GitHub issue, challenged until implementable first-try
+<!-- mmt:catalog:end -->
 
-**Get more / share yours.** Teams are shareable objects. `mmt export <team>` gives a copy-paste token; `mmt import '<token>'` installs it (skills included). The community library grows by **PR**: add your team (its export token + a one-line description) and, once reviewed, others install it in one command.
+**Share yours** via PR: add `catalog/<user>/<team>/` (your `<team>.team.yaml` + its `skills/`) — the index above (this page **and** the README) regenerates automatically. Install a catalogued team with `mmt import catalog/<user>/<team>/<team>.team.yaml` (bundled skills come with it).
 
 > Heads-up on trust: installing a shared team runs its members' prompts with your tools (bash, `gh`, edit). Review what a team's members and skills do before running it.
