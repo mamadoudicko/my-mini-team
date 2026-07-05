@@ -1,0 +1,21 @@
+team: pr-review
+about: review the open PR, address the feedback, loop until approved, then qa
+steps:
+  - loop:
+      until: reviewer approves
+      max_rounds: 3
+      steps:
+        - member: reviewer
+          does: review the open PR for correctness bugs and real blockers, post comments on GitHub
+          skills: [github-comment]
+        - member: coder
+          does: take the review comments and address them, updating the PR
+          skills: [github-pr]
+
+  - member: qa
+    does: run the tests and confirm the change still passes
+    skills: [run-tests]
+
+  - member: reporter
+    does: publish a concise run audit as a collapsible comment on the PR
+    skills: [publish-report]
