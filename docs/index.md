@@ -48,7 +48,7 @@ Community mini-teams, auto-generated from the [`catalog/`](https://github.com/ma
 <!-- mmt:catalog:start -->
 - [mamadoudicko/ship-feature](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/ship-feature/) — from a task to a shipped, reviewed PR
 - [mamadoudicko/dev](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/dev/) — plan → code → review/fix loop → qa
-- [mamadoudicko/ship-task](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/ship-task/) — ship a task's PR through review — loop fixes until approved, then qa
+- [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task's PR through review — loop fixes until approved, then qa
 - [mamadoudicko/idea-to-issue](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-issue/) — turn a raw idea into a well-scoped GitHub issue, challenged until implementable first-try
 <!-- mmt:catalog:end -->
 

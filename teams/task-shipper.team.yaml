@@ -1,4 +1,4 @@
-team: ship-task
+team: task-shipper
 about: ship a task's PR through review — loop fixes until approved, then qa
 steps:
   - loop:

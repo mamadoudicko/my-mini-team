@@ -104,7 +104,7 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 
 `mmt run` is watchable: the workflow *is* the progress bar. You see total elapsed time, per-member time, which loop round it's on, which steps are pending, and when it's **waiting for you** (a human-approval gate).
 
-**Opt-in run audit.** Add a `reporter` member (plugging the `publish-report` skill), or set `report: github` on a team, and a run posts a concise audit — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a collapsible comment on the PR. It is strictly opt-in: teams without a `reporter`/`report: github` post nothing. `ship-task` ships with it as the example.
+**Opt-in run audit.** Add a `reporter` member (plugging the `publish-report` skill), or set `report: github` on a team, and a run posts a concise audit — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a collapsible comment on the PR. It is strictly opt-in: teams without a `reporter`/`report: github` post nothing. `task-shipper` ships with it as the example.
 
 ## Concepts recap
 
@@ -118,7 +118,7 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do not hand-edit below.
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/ship-task](catalog/mamadoudicko/ship-task/) — ship a task's PR through review — loop fixes until approved, then qa
+- [mamadoudicko/task-shipper](catalog/mamadoudicko/task-shipper/) — ship a task's PR through review — loop fixes until approved, then qa
 <!-- mmt:catalog:end -->
 
 ## License
