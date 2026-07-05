@@ -31,13 +31,13 @@ mmt help
 
 ```bash
 mmt                       # home — your teams
-mmt show task-shipper     # the full workflow
+mmt show spec-to-prod     # the full workflow
 ```
 
 You'll see something like:
 
 ```
-task-shipper   ship a task end to end — plan, build, review loop, qa, release notes
+spec-to-prod   take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 
 1. strategist      turn the task into a short technical plan
 2. coder           ·github-pr ·ticket-status  implement the plan
@@ -55,7 +55,7 @@ Each numbered line is a **member** (a role). The `·chips` are **skills** it use
 Preview the flow with **no cost** using `--sim`:
 
 ```bash
-mmt run task-shipper "add a dark mode toggle" --sim
+mmt run spec-to-prod "add a dark mode toggle" --sim
 ```
 
 This plays a simulated tracker so you can feel the shape before spending anything.
@@ -65,7 +65,7 @@ This plays a simulated tracker so you can feel the shape before spending anythin
 Drop `--sim` to run on your subscription. `mmt run` opens an interactive Claude Code session and executes the team as sub-agents:
 
 ```bash
-mmt run task-shipper "add a dark mode toggle"
+mmt run spec-to-prod "add a dark mode toggle"
 ```
 
 You watch each member work live, with elapsed time and loop rounds.

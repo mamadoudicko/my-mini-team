@@ -16,7 +16,9 @@ Bundled skills come with the team. See [Sharing](/guides/sharing) for how it wor
 ## Available teams
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
+- [mamadoudicko/idea-to-prod](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-prod/) — take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
+- [mamadoudicko/idea-to-spec](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-spec/) — formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
+- [mamadoudicko/spec-to-prod](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/spec-to-prod/) — take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 <!-- mmt:catalog:end -->
 
 > This list is auto-generated from the catalog by `scripts/gen-catalog.js` — do not hand-edit between the markers.
