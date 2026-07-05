@@ -68,7 +68,7 @@ Drop `--sim` to run on your subscription. `mmt run` opens an interactive Claude 
 mmt run ship-feature "add a dark mode toggle"
 ```
 
-You watch each member work live, with elapsed time, loop rounds, and — when a member needs you — a pause for your input.
+You watch each member work live, with elapsed time and loop rounds.
 
 ## Next
 

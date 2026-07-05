@@ -39,8 +39,7 @@ While a team runs you see, live:
 - **who is active** — the team lead vs a specific member,
 - **elapsed time** total and per member,
 - the **loop round** it's on,
-- steps that are pending, done, or skipped,
-- when a member is **waiting for you** (an interactive step or `NEEDS INPUT:`).
+- steps that are pending, done, or skipped.
 
 Every real run also writes a full report to `~/.my-mini-team/runs/<team>-<timestamp>.md`.
 

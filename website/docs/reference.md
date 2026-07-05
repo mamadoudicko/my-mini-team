@@ -47,7 +47,6 @@ steps:                        # ordered
     does: implement and open a PR
     skills: [github-pr, ticket-status]
     model: opus               # optional per-member model
-    interactive: false        # optional — true = this member asks the user
 
   - loop:
       until: reviewer approves
@@ -73,7 +72,6 @@ steps:                        # ordered
 | `does` | one line describing its job |
 | `skills` | list of skills it plugs in |
 | `model` | `opus` / `sonnet` / `haiku` (optional) |
-| `interactive` | `true` = the member pauses to ask you (optional) |
 
 ### Loop fields
 

@@ -82,10 +82,6 @@ mmt run ship-feature "…" --model sonnet
 
 Precedence: `--model` (run) → member `model:` → team `model:` → your default. See [Running](/guides/running).
 
-## Members that ask you
-
-Mark a member `interactive: true` (or name it like `clarifier`) and it **pauses to ask you questions** during the run instead of guessing. Any member can also stop with `NEEDS INPUT:` to wait for you. Great for "understand the idea first" steps.
-
 ## Next
 
 - Give members real capabilities → [Skills](/guides/skills)

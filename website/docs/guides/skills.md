@@ -21,7 +21,7 @@ List everything you can plug in:
 mmt skills
 ```
 
-The shipped library includes `github-pr`, `github-comment`, `github-post`, `github-issue`, `run-tests`, `ticket-status`, `publish-report`.
+Out of a fresh clone only `publish-report` ships in the repo's `skills/` dir, so that's all `mmt skills` finds at first. The rest (`github-pr`, `github-comment`, `github-post`, `github-issue`, `run-tests`, `ticket-status`, …) live inside catalog teams — you get them when you `mmt import` a catalog team, which installs its bundled skills into your library.
 
 :::note Opt-in only
 Skills are **never applied to everyone by default.** A member has only the skills in its `skills: [...]`. What every sub-agent gets for free is baseline *tools* (read/edit/bash) — that's tool access, not a skill.
