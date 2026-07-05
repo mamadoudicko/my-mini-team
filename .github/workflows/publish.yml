@@ -1,0 +1,35 @@
+name: Publish to npm
+
+# Publishes @mamadoudicko/mmt to npm when a GitHub Release is published
+# (or manually via the Actions tab).
+#
+# Auth: npm Trusted Publishing (OIDC) — no stored token, nothing to expire or
+# rotate, and provenance is attached automatically. One-time npm setup:
+#   npmjs.com → the @mamadoudicko/mmt package → Settings → Trusted Publishers
+#   → GitHub Actions → owner: mamadoudicko, repo: my-mini-team, workflow: publish.yml
+# (If the package doesn't exist yet and npm won't pre-register it, do the first
+#  `npm publish --access public` by hand, then OIDC handles every release after.)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write        # required for OIDC trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Upgrade npm (OIDC trusted publishing needs npm >= 11.5)
+        run: npm install -g npm@latest
+      - name: Publish (public scoped package, OIDC)
+        run: npm publish --access public
+        env:
+          MMT_NO_POSTINSTALL: '1'
