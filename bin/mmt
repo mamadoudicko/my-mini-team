@@ -344,9 +344,12 @@ function help() {
   const a = process.argv.slice(2);
   const flags = { fast: false, sim: false, local: false, help: false, raw: false, headless: false, model: null };
   const args = [];
+  let endFlags = false;
   for (let i = 0; i < a.length; i++) {
     const x = a[i];
-    if (x === '--fast') flags.fast = true;
+    if (endFlags) { args.push(x); }
+    else if (x === '--') endFlags = true;
+    else if (x === '--fast') flags.fast = true;
     else if (x === '--sim') flags.sim = true;
     else if (x === '--headless') flags.headless = true;
     else if (x === '--local') flags.local = true;
@@ -354,8 +357,8 @@ function help() {
     else if (x === '--raw' || x === '--yaml') flags.raw = true;
     else if (x === '--help' || x === '-h') flags.help = true;
     else if (x === '--model') flags.model = a[++i] || null;
-    else if (x.startsWith('-')) { /* ignore unknown flag */ }
-    else args.push(x);
+    else if (x.startsWith('--')) { /* ignore unknown long flag */ }
+    else args.push(x); // positional (incl. values beginning with a single '-')
   }
   const cmd = args[0];
   try {
