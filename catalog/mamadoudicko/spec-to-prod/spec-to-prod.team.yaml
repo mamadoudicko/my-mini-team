@@ -1,5 +1,6 @@
 team: spec-to-prod
 about: take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
+example: ship https://notion.so/Booking-history-PDF-export-1a2b3c4
 steps:
   - member: strategist
     does: turn the spec into a short technical plan

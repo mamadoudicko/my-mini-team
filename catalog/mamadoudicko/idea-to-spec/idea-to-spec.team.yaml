@@ -1,5 +1,6 @@
 team: idea-to-spec
 about: formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
+example: we keep losing customers after their first booking — figure out what to build
 steps:
   - member: clarifier
     interactive: true

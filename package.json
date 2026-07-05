@@ -16,7 +16,7 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "demo": "node bin/mmt run spec-to-prod \"add SMS reminders to booking confirmations\"",
+    "demo": "node bin/mmt run spec-to-prod \"ship https://notion.so/Booking-history-PDF-export-1a2b3c4\" --sim",
     "catalog": "node scripts/gen-catalog.js"
   },
   "publishConfig": { "access": "public" },

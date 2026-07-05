@@ -49,7 +49,7 @@ npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 ```bash
 mmt                                         # home: discover your teams
 mmt show spec-to-prod                       # the full workflow (steps · skills · loops)
-mmt run spec-to-prod "add SMS reminders"    # run it, watch every step live
+mmt run idea-to-prod "add SMS reminders to booking confirmations"    # run it, watch every step live
 mmt new                                     # compose a new team (describe it in plain words)
 ```
 
@@ -143,8 +143,11 @@ Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do n
 
 <!-- mmt:catalog:start -->
 - [mamadoudicko/idea-to-prod](catalog/mamadoudicko/idea-to-prod/) — take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
+  - `mmt run idea-to-prod "add SMS reminders to booking confirmations"`
 - [mamadoudicko/idea-to-spec](catalog/mamadoudicko/idea-to-spec/) — formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
+  - `mmt run idea-to-spec "we keep losing customers after their first booking — figure out what to build"`
 - [mamadoudicko/spec-to-prod](catalog/mamadoudicko/spec-to-prod/) — take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
+  - `mmt run spec-to-prod "ship https://notion.so/Booking-history-PDF-export-1a2b3c4"`
 <!-- mmt:catalog:end -->
 
 ## License
