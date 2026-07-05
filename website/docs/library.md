@@ -16,7 +16,7 @@ Bundled skills come with the team. See [Sharing](/guides/sharing) for how it wor
 ## Available teams
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/pr-review](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/pr-review/) — review the open PR, address the feedback, loop until approved, then qa
+- [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task's PR through review — loop fixes until approved, then qa
 <!-- mmt:catalog:end -->
 
 > This list is auto-generated from the catalog by `scripts/gen-catalog.js` — do not hand-edit between the markers.

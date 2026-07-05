@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 'use strict';
-// Regenerate the README "## Catalog" section from catalog/<user>/<team>/ dirs.
+// Regenerate the catalog index from catalog/<user>/<team>/ dirs.
+// Targets (same list, per-target link base):
+//   - README.md               relative links (`catalog/<user>/<team>/`)
+//   - website/docs/library.md  absolute GitHub links (the docs site can't
+//                              resolve repo-relative paths)
 // Zero deps, Node 18+. Reuses lib/yaml + lib/model so the index can't drift
 // from what mmt actually reads.
 //
-//   node scripts/gen-catalog.js          # rewrite README if the section is stale
+//   node scripts/gen-catalog.js          # rewrite any stale target
 //   node scripts/gen-catalog.js --check  # write nothing; exit non-zero if stale/broken
 
 const fs = require('fs');
@@ -14,9 +18,14 @@ const { normalizeTeam, teamSkills } = require('../lib/model');
 
 const ROOT = path.join(__dirname, '..');
 const CATALOG = path.join(ROOT, 'catalog');
-const README = path.join(ROOT, 'README.md');
 const START = '<!-- mmt:catalog:start -->';
 const END = '<!-- mmt:catalog:end -->';
+
+const GH_TREE = 'https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/';
+const TARGETS = [
+  { file: path.join(ROOT, 'README.md'), base: 'catalog/' },
+  { file: path.join(ROOT, 'website', 'docs', 'library.md'), base: GH_TREE },
+];
 
 function dirsIn(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -47,18 +56,19 @@ function collectEntries() {
       if (team.team !== teamDir) {
         process.stderr.write(`warn: ${user}/${teamDir}: team field "${team.team}" != directory name "${teamDir}"\n`);
       }
-      // Reuse the model for validation, even though skills aren't rendered.
-      teamSkills(team);
-      const desc = team.about || team.team;
-      entries.push({ user, team: teamDir, line: `- [${user}/${teamDir}](catalog/${user}/${teamDir}/) — ${desc}` });
+      teamSkills(team); // reuse the model for validation
+      entries.push({ user, team: teamDir, desc: team.about || team.team });
     }
   }
   entries.sort((a, b) => (a.user === b.user ? a.team.localeCompare(b.team) : a.user.localeCompare(b.user)));
   return entries;
 }
 
-// Return the full README text with the marked region replaced, or null if the
-// markers are missing.
+function lineFor(e, base) {
+  return `- [${e.user}/${e.team}](${base}${e.user}/${e.team}/) — ${e.desc}`;
+}
+
+// Replace the marked region, or return null if the markers are missing.
 function render(current, body) {
   const s = current.indexOf(START);
   const e = current.indexOf(END);
@@ -71,30 +81,41 @@ function render(current, body) {
 
 function main() {
   const check = process.argv.includes('--check');
-  const current = fs.readFileSync(README, 'utf8');
   const entries = collectEntries();
-  const body = entries.map((e) => e.line).join('\n');
-  const next = render(current, body);
+  let stale = false;
+  let wrote = 0;
 
-  if (next === null) {
-    process.stderr.write(`error: markers ${START} / ${END} missing from README.md\n`);
-    process.exit(1);
+  for (const t of TARGETS) {
+    if (!fs.existsSync(t.file)) {
+      process.stderr.write(`warn: target ${path.relative(ROOT, t.file)} not found — skipping\n`);
+      continue;
+    }
+    const current = fs.readFileSync(t.file, 'utf8');
+    const body = entries.map((e) => lineFor(e, t.base)).join('\n');
+    const next = render(current, body);
+    if (next === null) {
+      process.stderr.write(`error: markers ${START} / ${END} missing from ${path.relative(ROOT, t.file)}\n`);
+      process.exit(1);
+    }
+    if (next === current) continue;
+    stale = true;
+    if (!check) {
+      fs.writeFileSync(t.file, next);
+      wrote++;
+      process.stdout.write(`catalog: wrote ${path.relative(ROOT, t.file)}\n`);
+    }
   }
 
   if (check) {
-    if (next === current) {
-      process.exit(0);
+    if (stale) {
+      process.stderr.write('error: catalog section is stale — run `npm run catalog`\n');
+      process.exit(1);
     }
-    process.stderr.write('error: README catalog section is stale — run `npm run catalog`\n');
-    process.exit(1);
+    process.exit(0);
   }
-
-  if (next === current) {
+  if (!wrote) {
     process.stdout.write(`catalog: up to date (${entries.length} team${entries.length === 1 ? '' : 's'})\n`);
-    return;
   }
-  fs.writeFileSync(README, next);
-  process.stdout.write(`catalog: wrote README.md (${entries.length} team${entries.length === 1 ? '' : 's'})\n`);
 }
 
 main();
