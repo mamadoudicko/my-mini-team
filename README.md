@@ -24,8 +24,8 @@ npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 
 ```bash
 mmt                                         # home: discover your teams
-mmt show ship-feature                       # the full workflow (steps · skills · loops)
-mmt run ship-feature "add SMS reminders"    # run it, watch every step live
+mmt show task-shipper                       # the full workflow (steps · skills · loops)
+mmt run task-shipper "add SMS reminders"    # run it, watch every step live
 mmt new                                     # compose a new team (describe it in plain words)
 ```
 
@@ -79,7 +79,7 @@ Skills are real definitions, not labels. A member plugs one in by name or path; 
 ```bash
 mmt skills                    # discovers mmt skills AND your existing Claude Code skills
 mmt skill edit github-pr      # elementary edit — opens the definition in your editor
-mmt edit ship-feature "plug the deploy skill into the coder"
+mmt edit task-shipper "plug the deploy skill into the coder"
 ```
 
 ## Local vs global
@@ -96,7 +96,7 @@ Local shadows global when names collide; the home list tags each so you can tell
 Export is deterministic — it ships the team's actual definition, not an agent re-derivation, so a copy-paste recreates it exactly. The token **bundles the skill definitions** too, so a shared team works on someone else's machine.
 
 ```bash
-mmt export ship-feature          # prints:  mmt import 'mmt2:…'   (copy the whole line)
+mmt export task-shipper          # prints:  mmt import 'mmt2:…'   (copy the whole line)
 mmt import 'mmt2:…'              # recreate the team + install its skills
 ```
 
@@ -104,7 +104,7 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 
 `mmt run` is watchable: the workflow *is* the progress bar. You see total elapsed time, per-member time, which loop round it's on, which steps are pending, and when it's **waiting for you** (a human-approval gate).
 
-**Opt-in run audit.** Add a `reporter` member (plugging the `publish-report` skill), or set `report: github` on a team, and a run posts a concise audit — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a collapsible comment on the PR. It is strictly opt-in: teams without a `reporter`/`report: github` post nothing. `task-shipper` ships with it as the example.
+**Opt-in run audit.** Add a `reporter` member (plugging the `publish-report` skill), or set `report: github` on a team, and a run posts a concise audit — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a collapsible comment on the PR. It is strictly opt-in: teams without a `reporter`/`report: github` post nothing.
 
 ## Concepts recap
 
@@ -118,7 +118,7 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do not hand-edit below.
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/task-shipper](catalog/mamadoudicko/task-shipper/) — ship a task's PR through review — loop fixes until approved, then qa
+- [mamadoudicko/task-shipper](catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
 <!-- mmt:catalog:end -->
 
 ## License

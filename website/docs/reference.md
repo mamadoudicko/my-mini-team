@@ -34,7 +34,7 @@ title: Reference
 A team is `<name>.team.yaml`:
 
 ```yaml
-team: ship-feature            # name (matches the file)
+team: task-shipper            # name (matches the file)
 about: from a task to a reviewed PR
 model: sonnet                 # optional default model for all members
 lead: >                       # optional custom lead instructions

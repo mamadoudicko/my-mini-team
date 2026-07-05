@@ -46,9 +46,8 @@ Compose your own agent **workflows** (teams), run them on any task, and share th
 Community mini-teams, auto-generated from the [`catalog/`](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog) folder (see [#8](https://github.com/mamadoudicko/my-mini-team/issues/8)). **Do not hand-edit between the markers** — the generator rewrites this list (and the README) from the catalog.
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/ship-feature](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/ship-feature/) — from a task to a shipped, reviewed PR
 - [mamadoudicko/dev](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/dev/) — plan → code → review/fix loop → qa
-- [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task's PR through review — loop fixes until approved, then qa
+- [mamadoudicko/task-shipper](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
 - [mamadoudicko/idea-to-issue](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-issue/) — turn a raw idea into a well-scoped GitHub issue, challenged until implementable first-try
 <!-- mmt:catalog:end -->
 

@@ -1,21 +1,27 @@
 team: task-shipper
-about: ship a task's PR through review — loop fixes until approved, then qa
+about: ship a task end to end — plan, build, review loop, qa, release notes
 steps:
+  - member: strategist
+    does: turn the task into a short technical plan
+
+  - member: coder
+    does: implement the plan
+    skills: [github-pr, ticket-status]
+
   - loop:
       until: reviewer approves
       max_rounds: 3
       steps:
         - member: reviewer
-          does: review the open PR for correctness bugs and real blockers, post comments on GitHub
+          does: review the diff on the PR
           skills: [github-comment]
         - member: coder
-          does: take the review comments and address them, updating the PR
+          does: address the review comments
           skills: [github-pr]
 
   - member: qa
-    does: run the tests and confirm the change still passes
-    skills: [run-tests]
+    does: run the tests and exercise the change
+    skills: [run-tests, github-post]
 
-  - member: reporter
-    does: publish a concise run audit as a collapsible comment on the PR
-    skills: [publish-report]
+  - member: release-notes
+    does: draft the release notes
