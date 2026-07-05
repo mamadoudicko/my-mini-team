@@ -6,6 +6,28 @@
 
 `my-mini-team` (CLI: `mmt`) lets you encode *your* way of shipping work as a named, reusable **workflow** — a team of members (roles) with skills and loops — then run it on any task and follow it step by step. You describe the team in plain words; an agent composes it; you refine by talking.
 
+## Architecture
+
+You fine-tune reusable **Teams** with the `mmt` CLI, then run them on any task. A Team is made of **Members** (roles, each with a model and skills) and **Loops**; members plug reusable **Skills**; at run time a **Team Lead** orchestrates the members as Claude subagents on your subscription; and Teams are shared through the **Catalog**.
+
+```mermaid
+flowchart TD
+    You["You<br/>(your workflow)"]:::external -->|uses| CLI["mmt CLI<br/>compose · run · share"]:::service
+    CLI -->|"compose · fine-tune"| Team["Team<br/>(reusable workflow)"]:::backend
+    Team -.->|"export / import"| Catalog["Catalog<br/>share · install (PR)"]:::datastore
+    Team -->|steps| Member["Member<br/>(role · model)"]:::backend
+    Team -->|steps| Loop["Loop<br/>(until · max rounds)"]:::queue
+    Loop -.->|repeats| Member
+    Member -->|"plugs (opt-in)"| Skills["Skill library<br/>(reusable · shared)"]:::datastore
+    Team -->|"run(team, task)"| Run["Run on a task<br/>Team Lead → members as<br/>Claude subagents (subscription)"]:::service
+
+    classDef external fill:#dee2e6,stroke:#495057,color:#111
+    classDef service fill:#ffd8a8,stroke:#e8590c,color:#111
+    classDef backend fill:#ffec99,stroke:#f08c00,color:#111
+    classDef datastore fill:#b2f2bb,stroke:#2f9e44,color:#111
+    classDef queue fill:#d0bfff,stroke:#7048e8,color:#111
+```
+
 > **Status: v0.1 UX prototype.** Everything below works, but a *run* is currently **simulated** (fake PR/timings) so the experience can be felt end to end. Wiring members to real Claude Code subagents is the next step.
 
 ---
