@@ -24,7 +24,7 @@ approved, then qa runs the tests
 Save and close. The agent composes the team and shows it:
 
 ```
-task-shipper   ship a task end to end — plan, build, review loop, qa, release notes
+spec-to-prod   take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 
 1. strategist
 2. coder        ·github-pr ·ticket-status
@@ -68,8 +68,8 @@ mmt run my-team "a real task"           # for real, on your subscription
 Same idea, by talking:
 
 ```bash
-mmt edit task-shipper "run the coder on opus and the reviewer on sonnet"
-mmt edit task-shipper "make qa a loop that retries until tests pass"
+mmt edit spec-to-prod "run the coder on opus and the reviewer on sonnet"
+mmt edit spec-to-prod "make qa a loop that retries until tests pass"
 ```
 
 ## Pick models per member
@@ -77,7 +77,7 @@ mmt edit task-shipper "make qa a loop that retries until tests pass"
 Add a `model:` to any member, or override a whole run:
 
 ```bash
-mmt run task-shipper "…" --model sonnet
+mmt run spec-to-prod "…" --model sonnet
 ```
 
 Precedence: `--model` (run) → member `model:` → team `model:` → your default. See [Running](/guides/running).

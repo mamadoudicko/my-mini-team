@@ -32,8 +32,8 @@ npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 
 ```bash
 mmt                                         # home: discover your teams
-mmt show task-shipper                       # the full workflow (steps · skills · loops)
-mmt run task-shipper "add SMS reminders"    # run it, watch every step live
+mmt show spec-to-prod                       # the full workflow (steps · skills · loops)
+mmt run spec-to-prod "add SMS reminders"    # run it, watch every step live
 mmt new                                     # compose a new team (describe it in plain words)
 ```
 
@@ -87,7 +87,7 @@ Skills are real definitions, not labels. A member plugs one in by name or path; 
 ```bash
 mmt skills                    # discovers mmt skills AND your existing Claude Code skills
 mmt skill edit github-pr      # elementary edit — opens the definition in your editor
-mmt edit task-shipper "plug the deploy skill into the coder"
+mmt edit spec-to-prod "plug the deploy skill into the coder"
 ```
 
 ## Local vs global
@@ -104,7 +104,7 @@ Local shadows global when names collide; the home list tags each so you can tell
 Export is deterministic — it ships the team's actual definition, not an agent re-derivation, so a copy-paste recreates it exactly. The token **bundles the skill definitions** too, so a shared team works on someone else's machine.
 
 ```bash
-mmt export task-shipper          # prints:  mmt import 'mmt2:…'   (copy the whole line)
+mmt export spec-to-prod          # prints:  mmt import 'mmt2:…'   (copy the whole line)
 mmt import 'mmt2:…'              # recreate the team + install its skills
 ```
 
@@ -126,7 +126,9 @@ mmt import 'mmt2:…'              # recreate the team + install its skills
 Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do not hand-edit below.
 
 <!-- mmt:catalog:start -->
-- [mamadoudicko/task-shipper](catalog/mamadoudicko/task-shipper/) — ship a task end to end — plan, build, review loop, qa, release notes
+- [mamadoudicko/idea-to-prod](catalog/mamadoudicko/idea-to-prod/) — take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
+- [mamadoudicko/idea-to-spec](catalog/mamadoudicko/idea-to-spec/) — formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
+- [mamadoudicko/spec-to-prod](catalog/mamadoudicko/spec-to-prod/) — take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 <!-- mmt:catalog:end -->
 
 ## License
