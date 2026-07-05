@@ -17,6 +17,13 @@ const { normalizeTeam, teamSkills } = require('../lib/model');
 
 process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); });
 
+// Role-appropriate example task per team for the "give it a task" hint.
+const TASK_HINTS = {
+  'idea-to-spec': 'we keep losing customers after their first booking — figure out what to build',
+  'spec-to-prod': 'ship https://notion.so/Booking-history-PDF-export-1a2b3c4',
+  'idea-to-prod': 'add SMS reminders to booking confirmations',
+};
+
 function spawnEditor(file) {
   const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi');
   spawnSync(editor, [file], { stdio: 'inherit' });
@@ -74,7 +81,7 @@ function pointer(argsStr) {
 async function run(name, task, opts) {
   const team = store.loadTeam(name);
   if (!team) return notFound(name);
-  if (!task) { console.log('\n  ' + C.yellow('give it a task:') + '  ' + C.cyan(`mmt run ${name} "add SMS reminders"`) + '\n'); return; }
+  if (!task) { const hint = TASK_HINTS[name] || 'add SMS reminders'; console.log('\n  ' + C.yellow('give it a task:') + '  ' + C.cyan(`mmt run ${name} "${hint}"`) + '\n'); return; }
   if (opts.sim) return runner.run(team, task, { sim: true, fast: opts.fast });
   if (opts.headless) {
     console.log('  ' + C.yellow('⚠ --headless uses claude -p → Agent SDK credit / API, NOT your subscription.'));

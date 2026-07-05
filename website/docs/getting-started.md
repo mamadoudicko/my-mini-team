@@ -55,7 +55,7 @@ Each numbered line is a **member** (a role). The `·chips` are **skills** it use
 Preview the flow with **no cost** using `--sim`:
 
 ```bash
-mmt run spec-to-prod "add a dark mode toggle" --sim
+mmt run spec-to-prod "ship https://notion.so/Booking-history-PDF-export-1a2b3c4" --sim
 ```
 
 This plays a simulated tracker so you can feel the shape before spending anything.
@@ -65,7 +65,7 @@ This plays a simulated tracker so you can feel the shape before spending anythin
 Drop `--sim` to run on your subscription. `mmt run` opens an interactive Claude Code session and executes the team as sub-agents:
 
 ```bash
-mmt run spec-to-prod "add a dark mode toggle"
+mmt run spec-to-prod "ship https://notion.so/Booking-history-PDF-export-1a2b3c4"
 ```
 
 You watch each member work live, with elapsed time and loop rounds.

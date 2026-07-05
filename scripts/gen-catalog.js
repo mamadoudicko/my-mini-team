@@ -57,7 +57,7 @@ function collectEntries() {
         process.stderr.write(`warn: ${user}/${teamDir}: team field "${team.team}" != directory name "${teamDir}"\n`);
       }
       teamSkills(team); // reuse the model for validation
-      entries.push({ user, team: teamDir, desc: team.about || team.team });
+      entries.push({ user, team: teamDir, desc: team.about || team.team, example: team.example || '' });
     }
   }
   entries.sort((a, b) => (a.user === b.user ? a.team.localeCompare(b.team) : a.user.localeCompare(b.user)));
@@ -65,7 +65,9 @@ function collectEntries() {
 }
 
 function lineFor(e, base) {
-  return `- [${e.user}/${e.team}](${base}${e.user}/${e.team}/) — ${e.desc}`;
+  const line = `- [${e.user}/${e.team}](${base}${e.user}/${e.team}/) — ${e.desc}`;
+  if (!e.example) return line;
+  return line + '\n  - `' + 'mmt run ' + e.team + ' "' + e.example + '"' + '`';
 }
 
 // Replace the marked region, or return null if the markers are missing.

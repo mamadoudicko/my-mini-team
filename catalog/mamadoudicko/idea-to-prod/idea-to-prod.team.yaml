@@ -1,5 +1,6 @@
 team: idea-to-prod
 about: take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
+example: add SMS reminders to booking confirmations
 lead: Whenever a member is genuinely uncertain, hits an ambiguous decision, or faces a choice that is the user's to make, pause and ask the user (end with `NEEDS INPUT:` and the questions, or use an interactive member) instead of guessing. Bias toward asking when it's relevant or you're in doubt — a good question now beats a wrong assumption later.
 steps:
   - member: clarifier
