@@ -6,6 +6,14 @@
 
 `my-mini-team` (CLI: `mmt`) lets you encode *your* way of shipping work as a named, reusable **workflow** — a team of members (roles) with skills and loops — then run it on any task and follow it step by step. You describe the team in plain words; an agent composes it; you refine by talking.
 
+## Architecture
+
+You fine-tune reusable **Teams** with the `mmt` CLI, then run them on any task. A Team is made of **Members** (roles, each with a model and skills) and **Loops**; members plug reusable **Skills**; at run time a **Team Lead** orchestrates the members as Claude subagents on your subscription; and Teams are shared through the **Catalog**.
+
+<p align="center">
+  <img src="assets/architecture.png" alt="mmt architecture — You → mmt CLI → Team (Members + Loops) → Skills, run via a Team Lead as Claude subagents, shared via the Catalog" width="640">
+</p>
+
 > **Status: v0.1 UX prototype.** Everything below works, but a *run* is currently **simulated** (fake PR/timings) so the experience can be felt end to end. Wiring members to real Claude Code subagents is the next step.
 
 ---
