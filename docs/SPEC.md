@@ -81,7 +81,7 @@ Right-arrow expands a row into its schema (roster + flow), so you navigate archi
 | `mmt "INPUT"` | task-first picker, then run the chosen team |
 | `mmt run <team> "INPUT"` | run a specific team, skip the picker |
 | `mmt new team <name> "<description>"` | agent-assisted team builder: reads your repo, drafts the team |
-| `mmt new --manual` | step-by-step manual builder (place every member by hand) |
+| `mmt new team <name> --ui` | step-by-step manual builder (place every member by hand) |
 | `mmt edit team <team>` | reopen the conversational builder on an existing team |
 | `mmt edit team <team> --form` | structured field editor for the team and its members |
 | `mmt set <team>[.member] <field> <value>` | change one parameter directly (scriptable) |
@@ -144,7 +144,7 @@ Under the hood the creation agent:
 - **wires and validates**: fills `consumes` / `produces`, runs the strict contract check, and only shows you a lineup that can actually deliver the team's promise.
 - **is transparent**: renders the live schema and the tool / permission footprint as it goes, so nothing is hidden.
 
-### Manual (`mmt new --manual`)
+### Manual (`mmt new team <name> --ui`)
 
 A step-by-step wizard for people who want to place every member by hand: name and describe the team, add members (reuse `@ns/name`, or define inline: kind, consumes, produces, tools, knowledge, prompt, applies_when), set the lead, choose a supervise default. The schema redraws and the contract check runs after each change.
 
@@ -176,7 +176,7 @@ Everything is editable:
 UX rules the editor follows (see the CLI-UX stack below):
 - **Flags for everything**: any prompt can be skipped by passing the value, so the builder is scriptable and agent-drivable, never a dead end.
 - **Validation inline**: a bad kind, an unknown tool, or a contract break is caught at the field, not after you finish.
-- **Safe cancel and undo**: ctrl-c never leaves a half-written team; edits are staged and saved only on confirm; `mmt edit --revert` restores the last saved version.
+- **Safe cancel and undo**: ctrl-c never leaves a half-written team; edits are staged and saved only on confirm; `mmt edit team <name> --revert` restores the last saved version.
 - **Live feedback**: the schema and the contract check update on every change, so you always see the shape and whether it still holds.
 - **Fast reorder and toggle**: move a member in the roster, flip a gate, or change supervise without retyping.
 
