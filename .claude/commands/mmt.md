@@ -26,28 +26,33 @@ about: <one line>
 lead: <optional lead instructions>
 model: <optional default model for all members>
 steps:                      # ordered
-  - member: <role>
+  - member: <role>          # an inline one-off member
     does: <what it does>
     skills: [<skill>, ...]  # optional
     model: <opus|sonnet|haiku>   # optional, per member
+  - uses: <agent>           # OR reference a reusable agent by name (pulls its role + model + default skills)
+    does: <what it does>
+    skills: [+extra]        # optional override: +x ADDS to the agent's defaults · a bare list REPLACES · absent inherits
   - loop:
       until: <exit condition>
       max_rounds: <n>
       steps: [ ...members... ]
 ```
 
-Model precedence when spawning a member: a `--model X` token in `$ARGUMENTS` (overrides all) → the member's `model:` → the team's `model:` → the session default.
+Model precedence when spawning a member: a `--model X` token in `$ARGUMENTS` (overrides all) → the step's `model:` → (for a `uses:` step) the agent's `model:` → the team's `model:` → the session default.
 
 ---
 
 ## Subcommand: `run <team> "<task>"`
 
 1. **Load the team.** Read `./teams/<team>.team.yaml`, else `~/.my-mini-team/teams/<team>.team.yaml`. If missing, list available teams (from both dirs) and stop.
-2. **Resolve skills.** For every skill referenced, read its definition from the first of: `./.claude/skills/<skill>/SKILL.md`, `~/.my-mini-team/skills/<skill>/SKILL.md`, `~/.claude/skills/<skill>/SKILL.md`. Use its content to inform the member that plugs it. If a skill is missing, note it and continue.
+2. **Resolve agents and skills.**
+   - **`uses: <agent>` steps** — read the agent file from the first of `./.claude/agents/<agent>.md` (project) then `~/.claude/agents/<agent>.md` (user; **project wins**). The agent's **body** is the member's role; its frontmatter **`skills:`** are the DEFAULT skills; its **`model:`** is the default model. Compute the step's **effective skills** by merging the defaults with the step's `skills:` override: a `+`-prefixed token **adds** to the defaults, a bare list **replaces** them, an **absent** `skills:` **inherits** the defaults. If the agent doesn't resolve, note it and fall back to using `uses:` as a plain member name.
+   - **Skills** (from a `member:` step, or the effective skills of a `uses:` step) — read each definition from the first of `./.claude/skills/<skill>/SKILL.md`, `~/.claude/skills/<skill>/SKILL.md`, `~/.claude/skills/<skill>/SKILL.md`. Use its content to inform the member. If a skill is missing, note it and continue.
 3. **Team lead — brief.** Acting as the team lead (use the team's `lead:` text, else a sensible default), read the task + roster and write a SHORT brief: what matters, and what each member should focus on. Keep it as the first entry of a running `carry` (the shared context).
 4. **Execute each step in order**, threading `carry` (lead brief + all prior member outputs). **Track an audit as you go** (needed only if the team opts into reporting at step 7, but cheap to keep): note the wall-clock time just before and just after each subagent and record one row `{ step#, member, model, elapsed, result-or-verdict }`; for a loop, record the rounds used and whether the gate **approved (and at which round)** or **hit `max_rounds`**; keep a running total elapsed. *Exception:* if the team's **last** member is `reporter`, do NOT run it here — it is deferred to step 7 (it needs the report path and the completed audit).
-   - **Member step:** spawn a **subagent via the Task/Agent tool** with the member's model. Its prompt:
-     > You are the "<member>" on the team "<team>". Task: <task>. Your job: <does>. Apply these skills: <for each skill: name + short summary of its definition>. Context so far:\n<carry>. Do your job now, grounded in the task and context. Be concrete and concise. Output only your result.
+   - **Member step:** spawn a **subagent via the Task/Agent tool** with the step's effective model. Its prompt:
+     > You are the "<member-or-agent name>" on the team "<team>".[ Your role: <the agent's role/body, if this step `uses:` an agent>.] Task: <task>. Your job: <does>. Apply these skills: <for each EFFECTIVE skill (agent defaults merged with the step override): name + short summary of its definition>. Context so far:\n<carry>. Do your job now, grounded in the task and context. Be concrete and concise. Output only your result.
      Append the subagent's result to `carry` as `## <member>\n<result>`.
    - **Loop step:** for `r = 1..max_rounds`:
      - Run the **first inner member as a GATE subagent** — append to its prompt: *"You are a review gate: end with a line exactly `VERDICT: APPROVE` if it is good enough to proceed, or `VERDICT: CHANGES` followed by the specific changes."*

@@ -1,28 +1,25 @@
 team: spec-to-prod
 about: take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
 steps:
-  - member: strategist
+  - uses: strategist
     does: turn the spec into a short technical plan
 
-  - member: coder
-    does: implement the plan
-    skills: [github-pr, ticket-status]
+  - uses: coder
+    does: implement the plan and open a PR
+    skills: [+ticket-status]     # coder's default [github-pr] + ticket-status
 
   - loop:
       until: reviewer approves
       max_rounds: 3
       steps:
-        - member: reviewer
-          does: review the diff on the PR
-          skills: [github-comment]
-        - member: coder
-          does: address the review comments
-          skills: [github-pr]
+        - uses: reviewer
+          does: review the diff on the PR       # inherits [github-comment]
+        - uses: coder
+          does: address the review comments     # inherits [github-pr]
 
-  - member: qa
+  - uses: qa
     does: run the tests and exercise the change
-    skills: [run-tests, github-post]
+    skills: [+github-post]        # qa's default [run-tests] + github-post
 
-  - member: reporter
-    does: publish a concise run audit as a collapsible comment on the PR
-    skills: [publish-report]
+  - uses: reporter
+    does: publish a concise run audit as a collapsible comment on the PR  # inherits [publish-report]
