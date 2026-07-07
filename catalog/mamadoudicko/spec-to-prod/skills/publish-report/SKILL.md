@@ -20,12 +20,19 @@ time, and the path to the full report (`~/.my-mini-team/runs/<team>-<ts>.md`).
 Build a compact markdown body:
 
 1. A one-line header, e.g. `**mini-team run · <team> · <total elapsed>**`.
-2. A compact table with one row per step:
+2. A compact table with one row per step. **The `time` column is mandatory —
+   every step row must show its wall-clock time and it must never be blank.**
+   Use the per-step `elapsed` the `/mmt` runtime tracked for each subagent; if a
+   value is somehow missing, fall back to that subagent's reported duration
+   rather than omitting it.
 
    ```
-   | step | member | model | elapsed | result / verdict |
-   |------|--------|-------|---------|------------------|
+   | step | member | model | time | result / verdict |
+   |------|--------|-------|------|------------------|
    ```
+
+   Format each time compactly (e.g. `1m 22s`, `47s`). For a loop, show the time
+   of each inner-member run (one row per actual run, not one per declared step).
 
 3. A line for each loop: rounds used and the gate outcome — either
    `approved at round N` or `hit max_rounds (N)`.
