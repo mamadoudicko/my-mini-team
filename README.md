@@ -87,8 +87,8 @@ Skill  (a reusable capability definition, referenced by a member; shared across 
 No forms. Describe the workflow; the agent composes it; you refine by talking.
 
 ```bash
-mmt new
-# opens your editor — write the description, save & close:
+mmt new team <name>
+# Claude drafts it from your description; add --ui to build it by hand instead:
 #   strategist plans, coder builds and opens a PR and updates the ticket,
 #   reviewer comments on github and loops with the coder until approved,
 #   then qa runs tests and posts results
