@@ -41,16 +41,4 @@ Compose your own agent **workflows** (teams), run them on any task, and share th
 
 ---
 
-## mmt library
-
-Community mini-teams, auto-generated from the [`catalog/`](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog) folder (see [#8](https://github.com/mamadoudicko/my-mini-team/issues/8)). **Do not hand-edit between the markers** — the generator rewrites this list (and the README) from the catalog.
-
-<!-- mmt:catalog:start -->
-- [mamadoudicko/idea-to-prod](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-prod/) — take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
-- [mamadoudicko/idea-to-spec](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/idea-to-spec/) — formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
-- [mamadoudicko/spec-to-prod](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog/mamadoudicko/spec-to-prod/) — take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
-<!-- mmt:catalog:end -->
-
-**Share yours** via PR: add `catalog/<user>/<team>/` (your `<team>.team.yaml` + its `skills/`) — the index above (this page **and** the README) regenerates automatically. Install a catalogued team with `mmt import catalog/<user>/<team>/<team>.team.yaml` (bundled skills come with it).
-
 > Heads-up on trust: installing a shared team runs its members' prompts with your tools (bash, `gh`, edit). Review what a team's members and skills do before running it.

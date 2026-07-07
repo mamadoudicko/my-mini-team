@@ -12,7 +12,7 @@
 
 ## Architecture
 
-`my-mini-team` is three stacked layers. Native **Skills** (`SKILL.md` capabilities) plug into **Agents** (roles with a model and a default skill set); Agents compose into **Teams** — mmt's own, proprietary layer — as ordered steps and loops. You fine-tune a team with the `mmt` CLI, then run it on any task: `mmt run <team>` orchestrates its agents as in-session Claude subagents on your subscription (via the `/mmt` skill — not `claude -p`). Teams are shared through the **Catalog**.
+`my-mini-team` is three stacked layers. Native **Skills** (`SKILL.md` capabilities) plug into **Agents** (roles with a model and a default skill set); Agents compose into **Teams** — mmt's own, proprietary layer — as ordered steps and loops. You fine-tune a team with the `mmt` CLI, then run it on any task: `mmt run <team>` orchestrates its agents as in-session Claude subagents on your subscription (via the `/mmt` skill — not `claude -p`). Teams are shared as reviewable bundles (`mmt export`/`mmt import`).
 
 <p align="center">
   <img src="assets/architecture.png" alt="mmt architecture — three layers, Skills into Agents into Teams (proprietary), run as in-session Claude subagents via mmt run" width="640">
@@ -137,19 +137,6 @@ mmt import ./spec-to-prod                # review the manifest, then install
 - **Member** = a role in that workflow, with skills attached.
 - **Loop** = a step group that repeats until a condition (bounded by `max_rounds`).
 - **Skill** = a reusable capability, referenced by members, shared across teams.
-
-## Catalog
-
-Mini-teams shared by the community. Add yours via PR (see CONTRIBUTING) — do not hand-edit below.
-
-<!-- mmt:catalog:start -->
-- [mamadoudicko/idea-to-prod](catalog/mamadoudicko/idea-to-prod/) — take a raw idea all the way to prod — publish the issue as a first draft early, iterate it in place with a challenger, get explicit user validation, then build, review, qa, audit
-  - `mmt run idea-to-prod "add SMS reminders to booking confirmations"`
-- [mamadoudicko/idea-to-spec](catalog/mamadoudicko/idea-to-spec/) — formulate a raw idea into a clear, implementable spec (in your tracker of choice — GitHub, Notion, …), challenged until it's right first-try
-  - `mmt run idea-to-spec "we keep losing customers after their first booking — figure out what to build"`
-- [mamadoudicko/spec-to-prod](catalog/mamadoudicko/spec-to-prod/) — take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
-  - `mmt run spec-to-prod "ship https://notion.so/Booking-history-PDF-export-1a2b3c4"`
-<!-- mmt:catalog:end -->
 
 ## License
 
