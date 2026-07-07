@@ -107,6 +107,18 @@ function skillsList() {
   console.log('\n  ' + C.dim('edit:') + ' ' + C.cyan('mmt skill edit <name>') + '   ' + C.dim('new:') + ' ' + C.cyan('mmt skill new <name>') + '\n');
 }
 
+// Resolve save scope: --local / --global win; otherwise ask (TTY) or default
+// to global. Returns { local }. Global = ~/.claude, local = ./.claude.
+async function chooseScope(opts = {}) {
+  if (opts.local) return { local: true };
+  if (opts.global) return { local: false };
+  if (!process.stdin.isTTY) return { local: false };
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ans = (await ask(rl, C.cyan('  save where?') + C.dim(' [g]lobal ~/.claude/skills · [l]ocal ./.claude/skills') + ' (G/l): ')).toLowerCase();
+  rl.close();
+  return { local: ans === 'l' || ans === 'local' };
+}
+
 async function skillCmd(sub, name, opts = {}) {
   if (!sub || sub === 'ls' || sub === 'list') return skillsList();
   if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan(`mmt skill ${sub} <name>`) + '\n'); return; }
@@ -123,6 +135,8 @@ async function skillCmd(sub, name, opts = {}) {
   } else if (sub === 'new') {
     const existing = skills.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
+    // Where to save: --local / --global, else ask (default global). Native .claude/skills.
+    const scope = await chooseScope(opts);
     // Prompt-authoring: a description (positional or --prompt) generates the SKILL.md.
     // `--file` forces the blank template. No description → template (current default).
     const description = (opts.prompt || opts.desc || '').trim();
@@ -133,15 +147,15 @@ async function skillCmd(sub, name, opts = {}) {
         content = await compose.composeSkill(name, description);
         stop();
       } catch (e) { return composeError(e); }
-      const file = skills.writeMmtSkill(name, content);
-      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')'));
+      const file = skills.writeSkill(name, content, scope);
+      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
       console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt skill edit ' + name) + '\n');
       return;
     }
     const template = `---\nname: ${name}\ndescription: ${opts.desc || ''}\n---\n\n# ${name}\n\nDescribe what this skill does and how a member should use it.\n`;
-    const file = skills.writeMmtSkill(name, template);
+    const file = skills.writeSkill(name, template, scope);
     spawnEditor(file);
-    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')') + '\n');
+    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
   } else {
     console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt skills') + '\n');
   }
@@ -369,7 +383,7 @@ function help() {
   ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
   ${C.cyan('mmt delete <team>')}          delete a team
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
-  ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description (or --file for a blank template)
+  ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description → .claude/skills (--local/--global, or asks)
   ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or show)
   ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
   ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
@@ -379,7 +393,7 @@ function help() {
 
 (async function main() {
   const a = process.argv.slice(2);
-  const flags = { fast: false, sim: false, local: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false };
+  const flags = { fast: false, sim: false, local: false, global: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false };
   const args = [];
   let endFlags = false;
   for (let i = 0; i < a.length; i++) {
@@ -390,7 +404,7 @@ function help() {
     else if (x === '--sim') flags.sim = true;
     else if (x === '--headless') flags.headless = true;
     else if (x === '--local') flags.local = true;
-    else if (x === '--global') { /* default */ }
+    else if (x === '--global') flags.global = true;
     else if (x === '--raw' || x === '--yaml') flags.raw = true;
     else if (x === '--file') flags.file = true;
     else if (x === '--help' || x === '-h') flags.help = true;
@@ -411,7 +425,7 @@ function help() {
     else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
     else if (cmd === 'skills') skillsList();
-    else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file });
+    else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
     else show(cmd); // `mmt <team>` shortcut
   } catch (e) {
     console.error('\n  ' + C.red(e.message) + '\n');
