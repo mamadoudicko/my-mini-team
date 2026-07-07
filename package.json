@@ -14,10 +14,15 @@
     "LICENSE"
   ],
   "engines": { "node": ">=18" },
+  "dependencies": {
+    "ink": "^5.0.1",
+    "react": "^18.3.1"
+  },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
     "demo": "node bin/mmt run spec-to-prod \"ship https://notion.so/Booking-history-PDF-export-1a2b3c4\" --sim",
-    "catalog": "node scripts/gen-catalog.js"
+    "catalog": "node scripts/gen-catalog.js",
+    "test": "node test/editor.test.js && node test/serialize.test.js"
   },
   "publishConfig": { "access": "public" },
   "repository": { "type": "git", "url": "git+https://github.com/mamadoudicko/my-mini-team.git" },
