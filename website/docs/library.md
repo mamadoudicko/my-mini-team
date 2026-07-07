@@ -8,10 +8,10 @@ title: Library
 Community mini-teams from the [`catalog/`](https://github.com/mamadoudicko/my-mini-team/tree/main/catalog). Install any of them with one command:
 
 ```bash
-mmt import catalog/<user>/<team>/<team>.team.yaml
+mmt import catalog/<user>/<team>
 ```
 
-Bundled skills come with the team. See [Sharing](/guides/sharing) for how it works.
+Directory import installs the whole bundle — the team's `agents/` and `skills/` come with it. See [Sharing](/guides/sharing) for how it works.
 
 ## Available teams
 

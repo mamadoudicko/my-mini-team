@@ -44,7 +44,7 @@ The gate is the member referenced in `until` (e.g. `reviewer approves`), so a `[
 `max_rounds` is a default (3), set per team and editable:
 
 ```bash
-mmt edit spec-to-prod "make the review loop max 5 rounds"
+mmt edit team spec-to-prod "make the review loop max 5 rounds"
 ```
 
 You see the current round live while a run executes (`loop round 2/3`), and each round's verdict in the run report.

@@ -10,7 +10,7 @@ You don't fill in a form — you **describe the workflow in plain words** and an
 ## 1. Describe it
 
 ```bash
-mmt new
+mmt new team my-team
 ```
 
 It opens your editor. Write how your team works, in one paragraph. Example:
@@ -50,7 +50,7 @@ The team redraws. Keep going until it's right, then save.
 You can also give the description inline:
 
 ```bash
-mmt new "researcher gathers sources, writer drafts, editor loops with the writer until clean"
+mmt new team research-loop "researcher gathers sources, writer drafts, editor loops with the writer until clean"
 ```
 
 Use `--local` to save it to the current project's `./teams/` instead of your global library.
@@ -58,7 +58,7 @@ Use `--local` to save it to the current project's `./teams/` instead of your glo
 ## 3. Look and run
 
 ```bash
-mmt show my-team
+mmt show team my-team
 mmt run my-team "a real task" --sim     # free preview
 mmt run my-team "a real task"           # for real, on your subscription
 ```
@@ -68,8 +68,8 @@ mmt run my-team "a real task"           # for real, on your subscription
 Same idea, by talking:
 
 ```bash
-mmt edit spec-to-prod "run the coder on opus and the reviewer on sonnet"
-mmt edit spec-to-prod "make qa a loop that retries until tests pass"
+mmt edit team spec-to-prod "run the coder on opus and the reviewer on sonnet"
+mmt edit team spec-to-prod "make qa a loop that retries until tests pass"
 ```
 
 ## Pick models per member
@@ -84,6 +84,6 @@ Precedence: `--model` (run) → member `model:` → team `model:` → your defau
 
 ## Next
 
-- Give members real capabilities → [Skills](/guides/skills)
+- Give members real capabilities → [Skills](/layers/skills)
 - Repeat-until-good → [Loops & gates](/guides/loops-and-gates)
 - Share it → [Sharing](/guides/sharing)

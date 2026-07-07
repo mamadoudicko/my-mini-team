@@ -9,14 +9,12 @@ included. To add yours:
 1. **Drop your team (and its skills) into `catalog/`.**
 
    ```bash
-   mkdir -p catalog/<your-handle>/<team>/skills
-   # emit the team yaml (its file name must match the team: field and the dir):
-   mmt export <team> --raw > catalog/<your-handle>/<team>/<team>.team.yaml
+   mmt export <team> catalog/<your-handle>/<team>
    ```
 
-   Then copy every `SKILL.md` your team references into
-   `catalog/<your-handle>/<team>/skills/<skill>/SKILL.md` (one folder per skill).
-   Only include the skills that team's members actually use.
+   This writes the whole bundle in one shot — `<team>.team.yaml`, `agents/*.md`, and
+   `skills/<skill>/SKILL.md` for every skill the team references — straight into the
+   catalog path. Pass `--force` if you're re-exporting over an existing dir.
 
 2. **Regenerate the README.**
 
@@ -31,10 +29,13 @@ included. To add yours:
 
 3. **Open a PR** with your `catalog/` files and the regenerated `README.md`.
 
-4. **Others install your team** by pulling and importing the yaml — which also
-   picks up the team's bundled skills:
+4. **Others install your team** by pulling and importing the bundle directory —
+   which also picks up the team's bundled agents and skills:
 
    ```bash
    git pull
-   mmt import catalog/<your-handle>/<team>/<team>.team.yaml
+   mmt import catalog/<your-handle>/<team>
    ```
+
+   Directory import installs the whole bundle (`team.yaml` + `agents/` + `skills/`);
+   the file form (`…/<team>.team.yaml`) only carries the yaml and its sibling skills.

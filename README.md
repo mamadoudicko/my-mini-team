@@ -12,10 +12,10 @@
 
 ## Architecture
 
-You fine-tune reusable **Teams** with the `mmt` CLI, then run them on any task. A Team is made of **Members** (roles, each with a model and skills) and **Loops**; members plug reusable **Skills**; at run time a **Team Lead** orchestrates the members as Claude subagents on your subscription; and Teams are shared through the **Catalog**.
+`my-mini-team` is three stacked layers. Native **Skills** (`SKILL.md` capabilities) plug into **Agents** (roles with a model and a default skill set); Agents compose into **Teams** — mmt's own, proprietary layer — as ordered steps and loops. You fine-tune a team with the `mmt` CLI, then run it on any task: `mmt run <team>` orchestrates its agents as in-session Claude subagents on your subscription (via the `/mmt` skill — not `claude -p`). Teams are shared through the **Catalog**.
 
 <p align="center">
-  <img src="assets/architecture.png" alt="mmt architecture — You → mmt CLI → Team (Members + Loops) → Skills, run via a Team Lead as Claude subagents, shared via the Catalog" width="640">
+  <img src="assets/architecture.png" alt="mmt architecture — three layers, Skills into Agents into Teams (proprietary), run as in-session Claude subagents via mmt run" width="640">
 </p>
 
 > **v0.1** — composing, editing, sharing, and the live step-tracker experience are all real and work today. A *run* currently **simulates** execution (fake PR/timings) so you can feel the full flow end to end; wiring members to real Claude Code subagents is the next step and lands soon.
@@ -48,9 +48,9 @@ npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 
 ```bash
 mmt                                         # home: discover your teams
-mmt show spec-to-prod                       # the full workflow (steps · skills · loops)
+mmt show team spec-to-prod                  # the full workflow (steps · skills · loops)
 mmt run idea-to-prod "add SMS reminders to booking confirmations"    # run it, watch every step live
-mmt new                                     # compose a new team (describe it in plain words)
+mmt new team <name>                         # compose a new team (describe it in plain words)
 ```
 
 ## The model
@@ -72,15 +72,14 @@ Skill  (a reusable capability definition, referenced by a member; shared across 
 | Command | What it does |
 | --- | --- |
 | `mmt` | home — list your teams (with `[local]`/`[global]` scope) |
-| `mmt show <team>` | full workflow: steps, skills, loops |
+| `mmt list teams\|agents\|skills` | list what you have (aliases: `mmt teams` · `mmt skills` · `mmt agents`) |
 | `mmt run <team> "task"` | run it with a live step tracker (`--fast` to speed the demo) |
-| `mmt new ["describe it"]` | compose a team from a plain-language description (`--local` to scope to this folder) |
-| `mmt edit <team> ["change"]` | change a team by describing it in words |
-| `mmt delete <team>` | delete a team (all copies) |
-| `mmt skills` | list reusable skills you can plug into a member |
-| `mmt skill new\|edit\|show <name>` | create / edit / view a skill definition |
-| `mmt export <team> [--raw]` | portable token (bundles skill definitions) or `--raw` yaml |
-| `mmt import '<token>'` | recreate a team from a token, yaml, or file |
+| `mmt new team\|agent\|skill <name> [text]` | create one — bare = describe it, Claude drafts it; `--ui` = author it yourself |
+| `mmt edit team\|agent\|skill <name> ["change"]` | update one — bare = describe the change; `--ui` = edit it yourself |
+| `mmt show team\|agent\|skill <name>` | print one |
+| `mmt delete team\|agent\|skill <name>` | delete one (alias: `rm`) |
+| `mmt export <team> [dir]` | write a reviewable bundle: `team.yaml` + `agents/` + `skills/` (`--force` to overwrite) |
+| `mmt import <dir>` | install a bundle after a manifest + consent (or legacy `mmt import '<token>'`) |
 | `mmt help` | list everything |
 
 ## Composing by describing it
@@ -102,8 +101,8 @@ Skills are real definitions, not labels. A member plugs one in by name or path; 
 
 ```bash
 mmt skills                    # discovers mmt skills AND your existing Claude Code skills
-mmt skill edit github-pr      # elementary edit — opens the definition in your editor
-mmt edit spec-to-prod "plug the deploy skill into the coder"
+mmt edit skill github-pr      # elementary edit — opens the definition in your editor
+mmt edit team spec-to-prod "plug the deploy skill into the coder"
 ```
 
 ## Local vs global
@@ -111,17 +110,19 @@ mmt edit spec-to-prod "plug the deploy skill into the coder"
 Teams live in one of two scopes (like `git config --local`/`--global`):
 
 - **global** (default) — `~/.my-mini-team/teams/`, available from any directory.
-- **local** (`mmt new --local`) — `./teams/`, belongs to this project (commit it with the repo).
+- **local** (`mmt new team <name> --local`) — `./teams/`, belongs to this project (commit it with the repo).
 
 Local shadows global when names collide; the home list tags each so you can tell.
 
 ## Sharing (export / import)
 
-Export is deterministic — it ships the team's actual definition, not an agent re-derivation, so a copy-paste recreates it exactly. The token **bundles the skill definitions** too, so a shared team works on someone else's machine.
+`mmt export <team> [dir]` writes a reviewable **directory bundle** — `<team>.team.yaml` plus its `agents/` and `skills/` — into `dir` (defaults to `./<team>`).
+The recipient reviews the bundle, then `mmt import <dir>` installs it after printing a manifest and asking for consent.
+A base64 token shared out-of-band still works as a legacy inbound form: `mmt import '<token>'`.
 
 ```bash
-mmt export spec-to-prod          # prints:  mmt import 'mmt2:…'   (copy the whole line)
-mmt import 'mmt2:…'              # recreate the team + install its skills
+mmt export spec-to-prod ./spec-to-prod   # writes spec-to-prod.team.yaml + agents/ + skills/
+mmt import ./spec-to-prod                # review the manifest, then install
 ```
 
 ## Observability
