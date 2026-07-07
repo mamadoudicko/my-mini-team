@@ -417,6 +417,28 @@ async function launchUi(name) {
   show(name);
 }
 
+// Launch the interactive agent editor (description · model · default skills).
+async function launchAgentUi(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt agent edit <name> --ui') + '\n'); return; }
+  const agent = agents.resolve(name);
+  if (!agent) return agentMissing(name);
+  let mod;
+  try { mod = await import('../lib/team-editor.mjs'); }
+  catch (e) {
+    if (e && (e.code === 'ERR_MODULE_NOT_FOUND' || e.code === 'MODULE_NOT_FOUND')) {
+      console.log('\n  ' + C.yellow('the visual editor needs its dependencies (ink, react).'));
+      console.log('  ' + C.dim('install them: ') + C.cyan('npm install -g @mamadoudicko/mmt') + '\n');
+    } else { console.log('\n  ' + C.red('the visual editor failed to load: ') + e.message + '\n'); }
+    return;
+  }
+  const patch = await mod.launchAgentEditor(agent);
+  if (!patch) { console.log('\n  ' + C.dim('closed — no changes saved.') + '\n'); return; }
+  const { agentToMd } = require('../lib/serialize');
+  const md = agentToMd({ name: agent.name, description: patch.description, model: patch.model, skills: patch.skills, body: agent.body });
+  fs.writeFileSync(agent.file, md);
+  console.log('\n  ' + C.green('✔ saved ') + C.blue(agent.name) + C.dim('  (' + agent.file + ')') + '\n');
+}
+
 async function editCmd(name, instruction, opts = {}) {
   const file = store.fileOf(name);
   if (!file) return notFound(name);
@@ -471,8 +493,9 @@ function help() {
   ${C.cyan('mmt run <team> "task"')}      run on your subscription → shows the /mmt command for Claude Code
   ${C.dim('                            --model <opus|sonnet|haiku> · --sim (offline, no cost) · --headless (off-sub)')}
   ${C.cyan('mmt new ["describe it"]')}    compose a team → runs on your subscription in Claude Code (--local for this folder)
+  ${C.cyan('mmt team edit <team>')}        open the interactive team editor (default) · add "change" for conversational
+  ${C.cyan('mmt agent edit <name> --ui')} open the interactive agent editor (description · model · skills)
   ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
-  ${C.cyan('mmt edit <team> --ui')}       open the interactive editor (reorder · loop · delete · save)
   ${C.cyan('mmt delete <team>')}          delete a team
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
   ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description → .claude/skills (--local/--global, or asks)
@@ -523,7 +546,22 @@ function help() {
     else if (cmd === 'skills') skillsList();
     else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
     else if (cmd === 'agents') agentsList();
-    else if (cmd === 'agent') await agentCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
+    else if (cmd === 'agent') {
+      if (flags.ui && args[1] === 'edit') await launchAgentUi(args[2]);
+      else await agentCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
+    }
+    else if (cmd === 'team') {
+      const sub = args[1];
+      if (sub === 'edit') {                       // UI is the DEFAULT mode; an instruction → conversational
+        const instruction = args.slice(3).join(' ');
+        if (instruction) await editCmd(args[2], instruction, { headless: flags.headless });
+        else await launchUi(args[2]);
+      } else if (sub === 'new') await newTeam(args.slice(2).join(' '), { local: flags.local, headless: flags.headless });
+      else if (sub === 'run') await run(args[2], args.slice(3).join(' '), { fast: flags.fast, sim: flags.sim, headless: flags.headless, model: flags.model });
+      else if (sub === 'show') show(args[2]);
+      else if (!sub || sub === 'ls' || sub === 'list') home();
+      else show(sub);                             // `mmt team <name>` → show
+    }
     else show(cmd); // `mmt <team>` shortcut
   } catch (e) {
     console.error('\n  ' + C.red(e.message) + '\n');

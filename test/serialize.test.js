@@ -70,4 +70,26 @@ test('embedded double-quote in a quoted field round-trips, stable across saves',
   assert.strictEqual(rt2.steps[0].does, 'ship: say "please" to the reviewer');
 });
 
+// --- agentToMd round-trip ---
+test('agentToMd: round-trips through the agent parsers (skills/model/desc/body)', () => {
+  const { agentToMd } = require('../lib/serialize');
+  const agents = require('../lib/agents');
+  const { descOf } = require('../lib/skills');
+  const a = { name: 'coder', description: 'Implements a change and opens a PR.', model: 'sonnet',
+    skills: ['github-pr', 'ticket-status'], body: 'Implement the plan. Keep it minimal.' };
+  const md = agentToMd(a);
+  assert.strictEqual(descOf(md), a.description);
+  assert.strictEqual(agents.modelOf(md), a.model);
+  assert.deepStrictEqual(agents.skillsOf(md), a.skills);
+  assert.strictEqual(agents.bodyOf(md), a.body);
+});
+
+test('agentToMd: empty skills → skills: [] (not omitted); no model → no model line', () => {
+  const { agentToMd } = require('../lib/serialize');
+  const agents = require('../lib/agents');
+  const md = agentToMd({ name: 'clarifier', description: 'asks questions', skills: [], body: 'Interview the user.' });
+  assert.deepStrictEqual(agents.skillsOf(md), []);
+  assert.strictEqual(agents.modelOf(md), '');
+});
+
 process.stdout.write('\n' + passed + ' passed\n');
