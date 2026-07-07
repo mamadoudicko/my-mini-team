@@ -16,6 +16,7 @@ const agents = require('../lib/agents');
 const yaml = require('../lib/yaml');
 const { normalizeTeam, teamSkills } = require('../lib/model');
 const lineup = require('../lib/lineup');
+const bundle = require('../lib/bundle');
 
 process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); });
 
@@ -232,35 +233,29 @@ async function agentCmd(sub, name, opts = {}) {
   }
 }
 
-function exportCmd(name, opts) {
-  const raw = store.loadRaw(name);
-  if (!raw) return notFound(name);
-  if (opts.raw) {
-    console.log('\n' + raw);
-    console.log(C.dim('  # save as a *.team.yaml, or:  mmt import <file>') + '\n');
-    return;
-  }
-  const team = normalizeTeam(yaml.parse(raw));
-  const bundled = [];
-  const missing = [];
-  for (const n of teamSkills(team)) {
-    const s = skills.resolve(n);
-    if (s) bundled.push({ name: n, content: s.content });
-    else missing.push(n);
-  }
-  const token = portable.encodeBundle(raw, bundled);
-  console.log('\n  ' + C.dim('portable token — copy this whole line, run it anywhere to recreate the team:') + '\n');
-  console.log('  mmt import ' + "'" + token + "'");
-  if (bundled.length) console.log('\n  ' + C.dim('bundled ' + bundled.length + ' skill(s): ') + bundled.map((b) => C.blue(b.name)).join(', '));
-  if (missing.length) console.log('\n  ' + C.yellow('not bundled (no definition found): ') + missing.join(', '));
-  console.log('\n  ' + C.dim('readable form:') + '  ' + C.cyan('mmt export ' + name + ' --raw') + '\n');
+// `mmt export <team> [dir] [--force]` — a reviewable directory bundle:
+// <team>.team.yaml + agents/*.md + skills/<name>/SKILL.md.
+function exportCmd(name, dirArg, opts = {}) {
+  const team = store.loadTeam(name);
+  if (!team) return notFound(name);
+  const destDir = path.resolve(dirArg || name);
+  const b = bundle.collect(team);
+  bundle.writeDir(b, destDir, { force: opts.force });   // throws on existing dir w/o --force; caught by main()
+  console.log('');
+  bundle.manifest(b).forEach((l) => console.log('  ' + l));
+  console.log('\n  ' + C.green('✔ exported ') + C.cyan(name) + C.dim('  → ' + destDir) + '\n');
 }
 
-function importCmd(arg, opts) {
+// `mmt import <path> [--yes] [--force] [--local]` — a directory bundle (new)
+// or the legacy token/yaml/file/stdin forms (unchanged, minus the sibling-skill
+// install target which now goes to native ~/.claude/skills).
+async function importCmd(arg, opts = {}) {
+  if (arg && fs.existsSync(arg) && fs.statSync(arg).isDirectory()) return importDir(arg, opts);
+
   let input = arg;
   if (!input && !process.stdin.isTTY) input = fs.readFileSync(0, 'utf8');
   if (!input || !input.trim()) {
-    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan("mmt import '<token>'") + C.dim('   · or ') + C.cyan('mmt import <file>') + C.dim('   · or pipe yaml') + '\n');
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan("mmt import '<token>'") + C.dim('   · or ') + C.cyan('mmt import <file|dir>') + C.dim('   · or pipe yaml') + '\n');
     return;
   }
   input = input.trim();
@@ -269,7 +264,7 @@ function importCmd(arg, opts) {
     if (portable.isToken(input)) { const d = portable.decode(input); yamlText = d.yaml; bundled = d.skills || []; }
     else if (/^team:/m.test(input)) yamlText = input;                 // raw yaml
     else if (fs.existsSync(input)) { yamlText = fs.readFileSync(input, 'utf8'); fromFile = input; } // file
-    else throw new Error('unrecognized input — expected a token, a team yaml, or a file path');
+    else throw new Error('unrecognized input — expected a token, a team yaml, or a file/dir path');
   } catch (e) { console.log('\n  ' + C.red(e.message) + '\n'); return; }
 
   let team;
@@ -286,7 +281,7 @@ function importCmd(arg, opts) {
       if (name.includes('/') || name.startsWith('~')) continue;      // path/~ refs
       if (skills.resolve(name)) continue;                            // never overwrite
       const p = path.join(path.dirname(fromFile), 'skills', name, 'SKILL.md');
-      if (fs.existsSync(p)) { skills.writeMmtSkill(name, fs.readFileSync(p, 'utf8')); installed.push(name); }
+      if (fs.existsSync(p)) { skills.writeSkill(name, fs.readFileSync(p, 'utf8'), { local: opts.local }); installed.push(name); }
     }
   }
 
@@ -295,6 +290,60 @@ function importCmd(arg, opts) {
   workflowBlock(lineup.effectiveSteps(team)).forEach((l) => console.log(l));
   console.log('\n  ' + C.green('✔ imported ') + C.cyan(team.team) + C.dim('  → ' + file));
   if (installed.length) console.log('  ' + C.dim('installed skills: ') + installed.map((n) => C.blue(n)).join(', '));
+  console.log('');
+}
+
+// `mmt import <dir>` — read a plain-directory bundle, show a manifest + a
+// heuristic capability footprint, get explicit consent, then install.
+async function importDir(dir, opts = {}) {
+  let b;
+  try { b = bundle.readDir(dir); }
+  catch (e) { console.log('\n  ' + C.red(e.message) + '\n'); process.exitCode = 1; return; }
+
+  console.log('');
+  bundle.manifest(b).forEach((l) => console.log('  ' + l));
+  console.log('');
+  bundle.footprint(b).forEach((l) => console.log('  ' + l));
+
+  if (process.stdin.isTTY) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    let proceed = false;
+    while (!proceed) {
+      const ans = (await ask(rl, '\n  ' + C.cyan('install?') + C.dim(' [y]es · [v]iew <name> · [n]o') + ' (Y/n): ')).toLowerCase();
+      if (!ans || ans === 'n' || ans === 'no') { rl.close(); console.log('\n  ' + C.dim('nothing installed.') + '\n'); return; }
+      if (ans === 'y' || ans === 'yes') { proceed = true; break; }
+      const vm = ans.match(/^v(?:iew)?\s+(.+)$/);
+      if (vm) {
+        const target = vm[1].trim();
+        const hit = [...b.agents, ...b.skills].find((x) => x.name === target);
+        console.log(hit ? '\n' + hit.content : '\n  ' + C.yellow(`no "${target}" in this bundle`));
+        continue;
+      }
+      console.log('\n  ' + C.dim('y / n / v <name>'));
+    }
+    rl.close();
+  } else if (!opts.yes) {
+    console.log('\n  ' + C.dim('non-interactive — re-run with --yes to install without prompting.') + '\n');
+    process.exitCode = 1;
+    return;
+  }
+
+  const file = store.saveTeam(b.team.name, b.team.yamlText, { local: opts.local });
+  const lines = [C.dim('team → ' + file)];
+  for (const a of b.agents) {
+    const target = path.join(agents.agentDir(!!opts.local), a.name + '.md');
+    if (fs.existsSync(target) && !opts.force) { lines.push(C.dim('kept agent ') + C.blue(a.name) + C.dim(' (already exists)')); continue; }
+    agents.writeAgent(a.name, a.content, { local: opts.local });
+    lines.push(C.dim('installed agent ') + C.blue(a.name));
+  }
+  for (const s of b.skills) {
+    const target = path.join(skills.skillDir(!!opts.local), s.name, 'SKILL.md');
+    if (fs.existsSync(target) && !opts.force) { lines.push(C.dim('kept skill ') + C.blue(s.name) + C.dim(' (already exists)')); continue; }
+    skills.writeSkill(s.name, s.content, { local: opts.local });
+    lines.push(C.dim('installed skill ') + C.blue(s.name));
+  }
+  console.log('\n  ' + C.green('✔ imported ') + C.cyan(b.team.name));
+  lines.forEach((l) => console.log('  ' + l));
   console.log('');
 }
 
@@ -553,14 +602,16 @@ function help() {
   ${C.cyan('mmt skills')} ${C.dim('·')} ${C.cyan('mmt agents')}      list your skills / agents ${C.dim('(add show <name> to print one)')}
 
   ${C.cyan('mmt delete <team>')}          delete a team
-  ${C.cyan('mmt export <team> [--raw]')}  portable token, or --raw yaml ${C.dim('·')} ${C.cyan("mmt import '<token>'")}
+  ${C.cyan('mmt export <team> [dir]')}   write a reviewable bundle: team.yaml + agents/ + skills/ ${C.dim('(--force to overwrite)')}
+  ${C.cyan('mmt import <dir>')}          install a bundle after a manifest + consent ${C.dim('(--yes for non-interactive · --force)')}
+  ${C.dim('· or ')}${C.cyan("mmt import '<token>'")}${C.dim(' / ')}${C.cyan('mmt import <file>')}${C.dim(' — the legacy token/yaml/file forms')}
   ${C.dim('flags: --local/--global (scope) · --model <opus|sonnet|haiku> · --sim · --headless')}
 `);
 }
 
 (async function main() {
   const a = process.argv.slice(2);
-  const flags = { fast: false, sim: false, local: false, global: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false, ui: false };
+  const flags = { fast: false, sim: false, local: false, global: false, help: false, headless: false, model: null, prompt: null, file: false, ui: false, force: false, yes: false };
   const args = [];
   let endFlags = false;
   for (let i = 0; i < a.length; i++) {
@@ -572,9 +623,10 @@ function help() {
     else if (x === '--headless') flags.headless = true;
     else if (x === '--local') flags.local = true;
     else if (x === '--global') flags.global = true;
-    else if (x === '--raw' || x === '--yaml') flags.raw = true;
     else if (x === '--file') flags.file = true;
     else if (x === '--ui' || x === '--editor') flags.ui = true;
+    else if (x === '--force') flags.force = true;
+    else if (x === '--yes' || x === '-y') flags.yes = true;
     else if (x === '--help' || x === '-h') flags.help = true;
     else if (x === '--model') flags.model = a[++i] || null;
     else if (x === '--prompt') flags.prompt = a[++i] || null;
@@ -590,8 +642,8 @@ function help() {
     else if (cmd === 'new') await newTeam(args.slice(1).join(' '), { local: flags.local, headless: flags.headless });
     else if (cmd === 'edit') { if (flags.ui) await launchUi(args[1]); else await editCmd(args[1], args.slice(2).join(' '), { headless: flags.headless }); }
     else if (cmd === 'delete' || cmd === 'rm') delTeam(args[1]);
-    else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
-    else if (cmd === 'import') importCmd(args[1], { local: flags.local });
+    else if (cmd === 'export') exportCmd(args[1], args[2], { force: flags.force });
+    else if (cmd === 'import') await importCmd(args[1], { local: flags.local, force: flags.force, yes: flags.yes });
     else if (cmd === 'skills') skillsList();
     else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global });
     else if (cmd === 'agents') agentsList();
