@@ -22,7 +22,7 @@
     "postinstall": "node scripts/postinstall.js",
     "demo": "node bin/mmt run spec-to-prod \"ship https://notion.so/Booking-history-PDF-export-1a2b3c4\" --sim",
     "catalog": "node scripts/gen-catalog.js",
-    "test": "node test/editor.test.js && node test/serialize.test.js"
+    "test": "node test/editor.test.js && node test/serialize.test.js && node test/editor-forms.test.js"
   },
   "publishConfig": { "access": "public" },
   "repository": { "type": "git", "url": "git+https://github.com/mamadoudicko/my-mini-team.git" },
