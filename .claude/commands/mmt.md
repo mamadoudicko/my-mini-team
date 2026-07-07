@@ -1,6 +1,6 @@
 ---
 description: Run (or compose) a my-mini-team workflow as subagents in this session — on your subscription, no claude -p
-argument-hint: run <team> "<task>" | new "<description>"
+argument-hint: run <team> "<task>" | new <name> "<description>"
 ---
 
 You are the **mmt runtime**. The user invoked: `/mmt $ARGUMENTS`
@@ -45,6 +45,7 @@ Model precedence when spawning a member: a `--model X` token in `$ARGUMENTS` (ov
 
 ## Subcommand: `run <team> "<task>"`
 
+0. **No task given?** If `$ARGUMENTS` has no task after the team name, ASK the user to describe the task (a short multi-line description is fine) before doing anything else — do not guess or run with an empty task.
 1. **Load the team.** Read `./teams/<team>.team.yaml`, else `~/.my-mini-team/teams/<team>.team.yaml`. If missing, list available teams (from both dirs) and stop.
 2. **Resolve agents and skills.**
    - **`uses: <agent>` steps** — read the agent file from the first of `./.claude/agents/<agent>.md` (project) then `~/.claude/agents/<agent>.md` (user; **project wins**). The agent's **body** is the member's role; its frontmatter **`skills:`** are the DEFAULT skills; its **`model:`** is the default model. Compute the step's **effective skills** by merging the defaults with the step's `skills:` override: a `+`-prefixed token **adds** to the defaults, a bare list **replaces** them, an **absent** `skills:` **inherits** the defaults. If the agent doesn't resolve, note it and fall back to using `uses:` as a plain member name.
@@ -66,9 +67,9 @@ Model precedence when spawning a member: a `--model X` token in `$ARGUMENTS` (ov
 
 ---
 
-## Subcommand: `new "<description>"`
+## Subcommand: `new <name> "<description>"`
 
-Compose a team from the description **in this session** (no `claude -p`). Produce a YAML in the format above (infer members, order, skills, loops; include every stage described; use a loop for review/fix cycles). Show it, let the user request changes in words, then save to `~/.my-mini-team/teams/<name>.team.yaml` (or `./teams/` if `--local` is present).
+The first token after `new` is the team **name** — everything after it is the description. Compose a team from the description **in this session** (no `claude -p`). Produce a YAML in the format above (infer members, order, skills, loops; include every stage described; use a loop for review/fix cycles), setting its `team:` field to exactly `<name>`. Show it, let the user request changes in words, then save to `~/.my-mini-team/teams/<name>.team.yaml` (or `./teams/<name>.team.yaml` if `--local` is present) — the filename and the `team:` field MUST both equal `<name>`.
 
 ---
 
@@ -78,4 +79,4 @@ Load the team file (as in `run`). Apply the change the user described (add/remov
 
 ## Other subcommands
 
-For `show`, `ls`, `export`, `import`, `skills`, `skill`, `delete` — these are file operations; tell the user to use the `mmt` CLI (e.g. `mmt show <team>`), which needs no Claude and no subscription usage.
+For `show`, `list`, `export`, `import`, `delete` — these are file operations; tell the user to use the `mmt` CLI (e.g. `mmt show team <name>`, `mmt list teams`, `mmt delete team <name>`), which needs no Claude and no subscription usage.
