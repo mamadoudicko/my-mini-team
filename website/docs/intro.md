@@ -26,7 +26,7 @@ A team is just a small, readable file. You compose it by talking, reuse it by na
 - **Legible.** `mmt show team <team>` prints the whole workflow: who does what, which skills, which loops.
 - **On your subscription.** Runs execute as sub-agents inside an interactive Claude Code session — no separate API billing.
 - **Shareable.** `mmt export <team> <dir>` writes a reviewable directory bundle.
-  Publish it to the catalog via a PR, or hand the dir to someone who runs `mmt import <dir>`.
+  Hand the dir to someone who runs `mmt import <dir>`.
 
 ## What you'll learn here
 

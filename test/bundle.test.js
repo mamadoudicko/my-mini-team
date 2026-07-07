@@ -62,12 +62,10 @@ writeFixtureAgent('demo-builder', [
 writeFixtureSkill('demo-skill-a', '---\nname: demo-skill-a\ndescription: a demo skill\n---\n\n# demo-skill-a\n\nDoes a demo thing.\n');
 writeFixtureSkill('demo-skill-b', '---\nname: demo-skill-b\ndescription: another demo skill\n---\n\n# demo-skill-b\n\nA harmless note — nothing to see, no digits either.\n');
 
-const specPublishContent = fs.readFileSync(
-  path.join(REPO_ROOT, 'catalog', 'mamadoudicko', 'idea-to-spec', 'skills', 'spec-publish', 'SKILL.md'), 'utf8');
+const specPublishContent = '---\nname: spec-publish\ndescription: fixture skill\n---\n\n# spec-publish\n\nFixture skill body.\n';
 writeFixtureSkill('spec-publish', specPublishContent);
 
-const ideaToSpecYaml = fs.readFileSync(
-  path.join(REPO_ROOT, 'catalog', 'mamadoudicko', 'idea-to-spec', 'idea-to-spec.team.yaml'), 'utf8');
+const ideaToSpecYaml = ['team: idea-to-spec', 'about: fixture team mirroring a catalog-shaped bundle', 'steps:', '  - member: publisher', '    does: publish something', '    skills: [spec-publish]', ''].join('\n');
 writeFixtureTeam('idea-to-spec', ideaToSpecYaml);
 
 const usesDemoYaml = [
@@ -92,7 +90,7 @@ const usesDemoYaml = [
 ].join('\n');
 writeFixtureTeam('uses-demo', usesDemoYaml);
 
-// --- 1. member-only step-level skills (catalog idea-to-spec shape) ---
+// --- 1. member-only step-level skills (idea-to-spec fixture shape) ---
 test('collect: member-only step-level skills are bundled (idea-to-spec), 0 agents', () => {
   const team = store.loadTeam('idea-to-spec');
   assert.ok(team, 'fixture team not found via store');
@@ -162,15 +160,20 @@ test('readDir: two *.team.yaml throws "ambiguous bundle"', () => {
   assert.throws(() => bundle.readDir(dir), /ambiguous bundle/);
 });
 
-// --- 7. readDir on the real catalog fixture, unmodified ---
-test('readDir: a real catalog directory imports unmodified', () => {
-  const dir = path.join(REPO_ROOT, 'catalog', 'mamadoudicko', 'idea-to-spec');
+// --- 7. readDir on a self-contained fixture directory, unmodified ---
+test('readDir: a catalog-shaped directory imports unmodified', () => {
+  const catalogShapedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mmt-bundle-catalog-shape-'));
+  fs.writeFileSync(path.join(catalogShapedDir, 'idea-to-spec.team.yaml'), ideaToSpecYaml);
+  fs.mkdirSync(path.join(catalogShapedDir, 'skills', 'spec-publish'), { recursive: true });
+  fs.writeFileSync(path.join(catalogShapedDir, 'skills', 'spec-publish', 'SKILL.md'), specPublishContent);
+
+  const dir = catalogShapedDir;
   const b = bundle.readDir(dir);
   assert.strictEqual(b.team.name, 'idea-to-spec');
   assert.strictEqual(b.team.yamlText, fs.readFileSync(path.join(dir, 'idea-to-spec.team.yaml'), 'utf8'));
   assert.strictEqual(b.agents.length, 0);
   const sp = b.skills.find((s) => s.name === 'spec-publish');
-  assert.ok(sp, 'spec-publish not read back from the catalog fixture');
+  assert.ok(sp, 'spec-publish not read back from the fixture');
   assert.strictEqual(sp.content, specPublishContent);
 });
 

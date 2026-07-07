@@ -21,7 +21,7 @@ List everything you can plug in:
 mmt list skills          # alias: mmt skills
 ```
 
-Out of a fresh clone only `publish-report` ships in the repo's `skills/` dir, so that's all `mmt list skills` finds at first. The rest (`github-pr`, `github-comment`, `github-post`, `github-issue`, `run-tests`, `ticket-status`, …) live inside catalog teams — you get them when you `mmt import` a catalog team, which installs its bundled skills into your library.
+Out of a fresh clone your library starts empty, so `mmt list skills` finds nothing at first. Skills like `github-pr`, `github-comment`, `github-post`, `github-issue`, `run-tests`, `ticket-status`, … come bundled with specific teams — importing a team bundle (see [Sharing](/guides/sharing)) installs its skills into your library alongside it.
 
 :::note Opt-in only
 Skills are **never applied to everyone by default.** An agent has only the skills in its `skills: [...]`. What every sub-agent gets for free is baseline *tools* (read/edit/bash) — that's tool access, not a skill.
@@ -68,7 +68,7 @@ Or in the team file:
 
 ## Worked example: `github-pr`
 
-The `coder` agent plugs in the real `github-pr` skill shipped in the catalog, at `catalog/mamadoudicko/spec-to-prod/skills/github-pr/SKILL.md`:
+The `coder` agent plugs in a `github-pr` skill shaped like this:
 
 ```markdown
 ---

@@ -112,4 +112,3 @@ Run the project's tests, summarize pass/fail, and list any failing cases.
 | `./teams/` | project-local teams (`--local`) |
 | `~/.my-mini-team/skills/` | your mmt skill library |
 | `~/.my-mini-team/runs/` | full run reports |
-| `catalog/<user>/<team>/` | shared teams in the repo |

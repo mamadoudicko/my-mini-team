@@ -48,11 +48,6 @@ const config = {
         items: [
           {type: 'docSidebar', sidebarId: 'docs', position: 'left', label: 'Docs'},
           {
-            href: 'https://github.com/mamadoudicko/my-mini-team/tree/main/catalog',
-            label: 'Catalog',
-            position: 'left',
-          },
-          {
             href: 'https://github.com/mamadoudicko/my-mini-team',
             label: 'GitHub',
             position: 'right',
@@ -74,7 +69,6 @@ const config = {
             title: 'Project',
             items: [
               {label: 'GitHub', href: 'https://github.com/mamadoudicko/my-mini-team'},
-              {label: 'Catalog', href: 'https://github.com/mamadoudicko/my-mini-team/tree/main/catalog'},
             ],
           },
         ],
