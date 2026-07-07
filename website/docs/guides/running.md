@@ -46,7 +46,3 @@ Every real run also writes a full report to `~/.my-mini-team/runs/<team>-<timest
 ## Opt-in run audit on the PR
 
 Add a `reporter` member (plugging the `publish-report` skill) or set `report: github` on a team, and a run posts a concise, collapsible **audit** — steps, per-member time, rounds, verdicts, total, and a link to the full report — as a comment on the PR. It's strictly opt-in: teams without it post nothing.
-
-## Off-subscription escape hatch
-
-`--headless` runs via `claude -p` instead. This draws from the **Agent SDK credit / API**, not your subscription — avoid it unless you specifically want headless/automated execution.

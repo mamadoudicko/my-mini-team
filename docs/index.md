@@ -23,13 +23,13 @@ Compose your own agent **workflows** (teams), run them on any task, and share th
 | `mmt import <dir>` | install a bundle after a manifest + consent (or legacy `mmt import '<token>'`) |
 | `mmt help` | list everything |
 
-**Flags for `run`:** `--model opus\|sonnet\|haiku` (override), `--sim` (offline preview, no cost), `--headless` (off-subscription `claude -p`).
+**Flags for `run`:** `--model opus\|sonnet\|haiku` (override), `--sim` (offline preview, no cost).
 
 ---
 
 ## Practical tips
 
-- **It runs on your subscription.** `mmt run` auto-opens an interactive Claude Code session and executes the team as subagents — no `claude -p`, no separate billing. `--headless` is the only path that uses the Agent SDK credit; avoid it unless you mean to.
+- **It runs on your subscription.** `mmt run` auto-opens an interactive Claude Code session and executes the team as subagents — no `claude -p`, no separate billing.
 - **Pick the model per member.** Add `model: opus` (or `sonnet`/`haiku`) on a member; override the whole run with `mmt run … --model sonnet`. Precedence: `--model` → member `model:` → team `model:` → default.
 - **Preview for free.** `mmt run <team> "…" --sim` plays a simulated tracker with no Claude calls — handy to check the flow.
 - **Members can ask you.** Mark a member `interactive: true` (or name it like `clarifier`) and it pauses to ask you questions mid-run. Any member can also end with `NEEDS INPUT:` to wait for you.
