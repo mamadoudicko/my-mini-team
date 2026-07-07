@@ -12,12 +12,24 @@ Two minutes: install `mmt`, look at a team, run it.
 Requires **Node 18+** and the **Claude Code CLI** (`claude`) logged in with your subscription.
 
 ```bash
-git clone https://github.com/mamadoudicko/my-mini-team
-cd my-mini-team
-npm link            # puts `mmt` on your PATH
+npm i -g @mamadoudicko/mmt      # puts `mmt` on your PATH
+# …or run it without installing:
+npx @mamadoudicko/mmt
 ```
 
-No dependencies to install — `mmt` is zero-dep Node. (`npm link` just symlinks the CLI. Or run it as `node bin/mmt …`.)
+Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` and seeds the starter skills and teams into `~/.my-mini-team/` (missing files only — it never overwrites your edits). Opt out with `MMT_NO_POSTINSTALL=1`.
+
+<details>
+<summary>Install from source (for contributing)</summary>
+
+```bash
+git clone https://github.com/mamadoudicko/my-mini-team
+cd my-mini-team
+npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
+```
+
+No dependencies to install — `mmt` is zero-dep Node.
+</details>
 
 Check it works:
 
