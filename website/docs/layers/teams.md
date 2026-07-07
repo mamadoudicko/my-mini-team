@@ -30,7 +30,7 @@ mmt edit team spec-to-prod --ui                              # --ui — edit the
 
 ## Worked example: `spec-to-prod`
 
-The real `spec-to-prod` team, at `teams/spec-to-prod.team.yaml`:
+A `spec-to-prod` team looks like:
 
 ```yaml
 team: spec-to-prod
