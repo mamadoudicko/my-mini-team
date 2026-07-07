@@ -107,7 +107,7 @@ function skillsList() {
   console.log('\n  ' + C.dim('edit:') + ' ' + C.cyan('mmt skill edit <name>') + '   ' + C.dim('new:') + ' ' + C.cyan('mmt skill new <name>') + '\n');
 }
 
-function skillCmd(sub, name) {
+async function skillCmd(sub, name, opts = {}) {
   if (!sub || sub === 'ls' || sub === 'list') return skillsList();
   if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan(`mmt skill ${sub} <name>`) + '\n'); return; }
 
@@ -123,7 +123,22 @@ function skillCmd(sub, name) {
   } else if (sub === 'new') {
     const existing = skills.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
-    const template = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n\nDescribe what this skill does and how a member should use it.\n`;
+    // Prompt-authoring: a description (positional or --prompt) generates the SKILL.md.
+    // `--file` forces the blank template. No description → template (current default).
+    const description = (opts.prompt || opts.desc || '').trim();
+    if (description && !opts.file) {
+      let content;
+      try {
+        const stop = startSpinner('writing the skill…');
+        content = await compose.composeSkill(name, description);
+        stop();
+      } catch (e) { return composeError(e); }
+      const file = skills.writeMmtSkill(name, content);
+      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')'));
+      console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt skill edit ' + name) + '\n');
+      return;
+    }
+    const template = `---\nname: ${name}\ndescription: ${opts.desc || ''}\n---\n\n# ${name}\n\nDescribe what this skill does and how a member should use it.\n`;
     const file = skills.writeMmtSkill(name, template);
     spawnEditor(file);
     console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  (' + file + ')') + '\n');
@@ -354,7 +369,8 @@ function help() {
   ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
   ${C.cyan('mmt delete <team>')}          delete a team
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
-  ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or new/show)
+  ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description (or --file for a blank template)
+  ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or show)
   ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
   ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
   ${C.dim('flags: --fast · --local (save to this folder instead of global)')}
@@ -363,7 +379,7 @@ function help() {
 
 (async function main() {
   const a = process.argv.slice(2);
-  const flags = { fast: false, sim: false, local: false, help: false, raw: false, headless: false, model: null };
+  const flags = { fast: false, sim: false, local: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false };
   const args = [];
   let endFlags = false;
   for (let i = 0; i < a.length; i++) {
@@ -376,8 +392,10 @@ function help() {
     else if (x === '--local') flags.local = true;
     else if (x === '--global') { /* default */ }
     else if (x === '--raw' || x === '--yaml') flags.raw = true;
+    else if (x === '--file') flags.file = true;
     else if (x === '--help' || x === '-h') flags.help = true;
     else if (x === '--model') flags.model = a[++i] || null;
+    else if (x === '--prompt') flags.prompt = a[++i] || null;
     else if (x.startsWith('--')) { /* ignore unknown long flag */ }
     else args.push(x); // positional (incl. values beginning with a single '-')
   }
@@ -393,7 +411,7 @@ function help() {
     else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
     else if (cmd === 'skills') skillsList();
-    else if (cmd === 'skill') skillCmd(args[1], args[2]);
+    else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file });
     else show(cmd); // `mmt <team>` shortcut
   } catch (e) {
     console.error('\n  ' + C.red(e.message) + '\n');
