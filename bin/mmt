@@ -12,6 +12,7 @@ const runner = require('../lib/runner');
 const compose = require('../lib/compose');
 const portable = require('../lib/portable');
 const skills = require('../lib/skills');
+const agents = require('../lib/agents');
 const yaml = require('../lib/yaml');
 const { normalizeTeam, teamSkills } = require('../lib/model');
 
@@ -163,6 +164,66 @@ async function skillCmd(sub, name, opts = {}) {
 
 function skillMissing(name) {
   console.log('\n  ' + C.yellow(`no skill "${name}"`) + '  ' + C.dim('· list them:') + ' ' + C.cyan('mmt skills') + '\n');
+}
+
+function agentsList() {
+  const list = agents.list();
+  console.log('\n  ' + C.bold('agents') + C.dim('  — native subagents Claude can delegate to') + '\n');
+  if (!list.length) {
+    console.log('  ' + C.dim('none yet. create one:') + '  ' + C.cyan('mmt agent new <name>') + '\n');
+    return;
+  }
+  for (const a of list) {
+    const model = a.model ? C.dim('  (' + a.model + ')') : '';
+    console.log('  ' + C.blue(a.name.padEnd(18)) + ' ' + C.dim('[' + a.source + ']').padEnd(11) + ' ' + C.dim(a.description || '') + model);
+  }
+  console.log('\n  ' + C.dim('edit:') + ' ' + C.cyan('mmt agent edit <name>') + '   ' + C.dim('new:') + ' ' + C.cyan('mmt agent new <name>') + '\n');
+}
+
+function agentMissing(name) {
+  console.log('\n  ' + C.yellow(`no agent "${name}"`) + '  ' + C.dim('· list them:') + ' ' + C.cyan('mmt agents') + '\n');
+}
+
+async function agentCmd(sub, name, opts = {}) {
+  if (!sub || sub === 'ls' || sub === 'list') return agentsList();
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan(`mmt agent ${sub} <name>`) + '\n'); return; }
+
+  if (sub === 'show') {
+    const a = agents.resolve(name);
+    if (!a) return agentMissing(name);
+    console.log('\n  ' + C.blue(name) + C.dim('  [' + a.source + ']  ' + a.file) + '\n\n' + a.content + '\n');
+  } else if (sub === 'edit') {
+    const a = agents.resolve(name);
+    if (!a) { console.log('\n  ' + C.yellow(`no agent "${name}"`) + C.dim('  · create it: ') + C.cyan('mmt agent new ' + name) + '\n'); return; }
+    spawnEditor(a.file);
+    console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + a.file + ')') + '\n');
+  } else if (sub === 'new') {
+    const existing = agents.resolve(name);
+    if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
+    // Where to save: --local / --global, else ask (default global). Native .claude/agents.
+    const scope = await chooseScope(opts);
+    // Prompt-authoring: a role (positional or --prompt) generates the subagent .md.
+    // `--file` forces the blank template. No role → template.
+    const description = (opts.prompt || opts.desc || '').trim();
+    if (description && !opts.file) {
+      let content;
+      try {
+        const stop = startSpinner('writing the agent…');
+        content = await compose.composeAgent(name, description);
+        stop();
+      } catch (e) { return composeError(e); }
+      const file = agents.writeAgent(name, content, scope);
+      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
+      console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt agent edit ' + name) + '\n');
+      return;
+    }
+    const template = `---\nname: ${name}\ndescription: ${opts.desc || ''}\nmodel: sonnet\nskills: []\n---\n\n# ${name}\n\nDescribe this agent's role — who it is, what it owns, and how it should work.\n`;
+    const file = agents.writeAgent(name, template, scope);
+    spawnEditor(file);
+    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
+  } else {
+    console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt agent show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt agents') + '\n');
+  }
 }
 
 function exportCmd(name, opts) {
@@ -385,6 +446,9 @@ function help() {
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
   ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description → .claude/skills (--local/--global, or asks)
   ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or show)
+  ${C.cyan('mmt agents')}                 list native subagents Claude can delegate to
+  ${C.cyan('mmt agent new <name> "role"')} write a subagent .md from a role → .claude/agents (--local/--global, or asks)
+  ${C.cyan('mmt agent edit <name>')}      edit a subagent's definition (or show)
   ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
   ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
   ${C.dim('flags: --fast · --local (save to this folder instead of global)')}
@@ -426,6 +490,8 @@ function help() {
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
     else if (cmd === 'skills') skillsList();
     else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
+    else if (cmd === 'agents') agentsList();
+    else if (cmd === 'agent') await agentCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
     else show(cmd); // `mmt <team>` shortcut
   } catch (e) {
     console.error('\n  ' + C.red(e.message) + '\n');
