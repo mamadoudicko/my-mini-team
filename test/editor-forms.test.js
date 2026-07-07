@@ -74,4 +74,16 @@ test('applyChar: append printable, backspace deletes, ignore ctrl', () => {
   assert.strictEqual(f.applyChar('ab', 'c', { ctrl: true }), 'ab');
 });
 
+// --- editText (movable cursor) ---
+test('editText: insert at cursor, ←→ move, backspace at cursor', () => {
+  assert.deepStrictEqual(f.editText('abc', 3, 'd', {}), { text: 'abcd', cur: 4 });      // append at end
+  assert.deepStrictEqual(f.editText('abc', 1, 'X', {}), { text: 'aXbc', cur: 2 });      // insert mid
+  assert.deepStrictEqual(f.editText('abc', 2, '', { leftArrow: true }), { text: 'abc', cur: 1 });
+  assert.deepStrictEqual(f.editText('abc', 1, '', { rightArrow: true }), { text: 'abc', cur: 2 });
+  assert.deepStrictEqual(f.editText('abc', 2, '', { backspace: true }), { text: 'ac', cur: 1 }); // delete before cursor
+  assert.deepStrictEqual(f.editText('abc', 0, '', { backspace: true }), { text: 'abc', cur: 0 }); // no-op at start
+  assert.deepStrictEqual(f.editText('abc', 0, '', { leftArrow: true }), { text: 'abc', cur: 0 }); // clamp left
+  assert.deepStrictEqual(f.editText('abc', 3, '', { rightArrow: true }), { text: 'abc', cur: 3 }); // clamp right
+});
+
 process.stdout.write('\n' + passed + ' passed\n');

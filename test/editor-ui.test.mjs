@@ -9,7 +9,8 @@ const tick = () => new Promise((r) => setTimeout(r, 30));
 let passed = 0, failed = 0;
 const ok = (name, cond) => { if (cond) { passed++; process.stdout.write('  ✓ ' + name + '\n'); } else { failed++; process.stdout.write('  ✗ ' + name + '\n'); } };
 
-// --- AgentEditor: tab should move focus desc → model → skills ---
+const DOWN = '[B';
+// --- AgentEditor: ↑↓ moves through description → model → skills, no tab ---
 {
   const agent = { name: 'reviewer', description: 'Reviews diffs', model: 'sonnet', skills: ['github-comment'], body: 'Review the diff.' };
   const { stdin, lastFrame, unmount } = render(h(AgentEditor, {
@@ -17,17 +18,22 @@ const ok = (name, cond) => { if (cond) { passed++; process.stdout.write('  ✓ '
   }));
   await tick();
   const before = lastFrame();
-  stdin.write('\t');                 // tab → focus should move to "model"
-  await tick();
-  const after = lastFrame();
   ok('AgentEditor renders', /description/.test(before) && /skills/.test(before));
-  ok('AgentEditor useInput fires (tab moves focus)', before !== after);
 
-  // type in description (focus back to desc first: two more tabs → desc)
-  stdin.write('\t'); await tick(); stdin.write('\t'); await tick(); // model→skills→desc
-  const beforeType = lastFrame();
+  // typing edits the description (cursor starts on it)
   stdin.write('X'); await tick();
-  ok('AgentEditor description accepts typing', lastFrame() !== beforeType);
+  ok('AgentEditor description accepts typing', lastFrame() !== before);
+
+  // ↓ moves the cursor (❯) down through the form
+  const beforeDown = lastFrame();
+  stdin.write(DOWN); await tick();
+  ok('AgentEditor ↓ moves the cursor', lastFrame() !== beforeDown);
+
+  // ↓ to first skill (down×2 more: model→skills), space toggles it
+  stdin.write(DOWN); await tick(); stdin.write(DOWN); await tick();
+  const beforeToggle = lastFrame();
+  stdin.write(' '); await tick();
+  ok('AgentEditor space toggles a skill checkbox', lastFrame() !== beforeToggle);
   unmount();
 }
 
@@ -54,7 +60,7 @@ const ok = (name, cond) => { if (cond) { passed++; process.stdout.write('  ✓ '
   }));
   await tick();
   const before = lastFrame();
-  stdin.write('\t'); await tick();
+  stdin.write(DOWN); await tick();
   ok('AgentApp (real wrapper) useInput fires', before !== lastFrame());
   unmount();
 }
