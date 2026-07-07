@@ -10,15 +10,14 @@ title: Reference
 | Command | What it does |
 | --- | --- |
 | `mmt` | home — list your teams with `[local]`/`[global]` scope |
-| `mmt show <team>` | full workflow: steps, skills, loops, models |
+| `mmt list teams\|agents\|skills` | list what you have (aliases: `mmt teams` · `mmt skills` · `mmt agents`) |
 | `mmt run <team> "task"` | run on your subscription (opens a Claude Code session) |
-| `mmt new ["describe it"]` | compose a team from a description (`--local` for this folder) |
-| `mmt edit <team> ["change"]` | change a team by describing it |
-| `mmt delete <team>` | delete a team (all copies) |
-| `mmt skills` | list plug-in skills (all sources) |
-| `mmt skill new\|edit\|show <name>` | create / edit / view a skill |
-| `mmt export <team> [--raw]` | portable token (bundles skills) or raw yaml |
-| `mmt import '<token>' \| <file>` | recreate a team (token installs bundled skills) |
+| `mmt new team\|agent\|skill <name> [text]` | create one — bare = describe it, Claude drafts it; `--ui` = author it yourself |
+| `mmt edit team\|agent\|skill <name> ["change"]` | update one — bare = describe the change; `--ui` = edit it yourself |
+| `mmt show team\|agent\|skill <name>` | print one |
+| `mmt delete team\|agent\|skill <name>` | delete one (alias: `rm`) |
+| `mmt export <team> [dir]` | write a reviewable bundle: `team.yaml` + `agents/` + `skills/` (`--force` to overwrite) |
+| `mmt import <dir>` | install a bundle after a manifest + consent (or legacy `mmt import '<token>'` / `<file>`) |
 | `mmt help` | list everything |
 
 ### `run` flags

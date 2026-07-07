@@ -79,16 +79,16 @@ Right-arrow expands a row into its schema (roster + flow), so you navigate archi
 | Command | Does |
 | --- | --- |
 | `mmt "INPUT"` | task-first picker, then run the chosen team |
-| `mmt <team> "INPUT"` | run a specific team, skip the picker |
-| `mmt new "<description>"` | agent-assisted team builder: reads your repo, drafts the team |
-| `mmt new --manual` | step-by-step manual builder (place every member by hand) |
-| `mmt edit <team>` | reopen the conversational builder on an existing team |
-| `mmt edit <team> --form` | structured field editor for the team and its members |
+| `mmt run <team> "INPUT"` | run a specific team, skip the picker |
+| `mmt new team <name> "<description>"` | agent-assisted team builder: reads your repo, drafts the team |
+| `mmt new team <name> --ui` | step-by-step manual builder (place every member by hand) |
+| `mmt edit team <team>` | reopen the conversational builder on an existing team |
+| `mmt edit team <team> --form` | structured field editor for the team and its members |
 | `mmt set <team>[.member] <field> <value>` | change one parameter directly (scriptable) |
 | `mmt get <team>[.member] [field]` | inspect current settings |
 | `mmt fork @author/team` | copy a shared team into your namespace to customize |
 | `mmt ls` | list installed teams with one-line signatures |
-| `mmt show <team>` | print a team's schema (mermaid, or `--ascii`) |
+| `mmt show team <team>` | print a team's schema (mermaid, or `--ascii`) |
 | `mmt check <team>` | strict contract validation of the roster |
 | `mmt search <query>` | discover teams / members in the registry |
 | `mmt install @author/name` | install a shared team globally, compiled in your context |
@@ -102,7 +102,7 @@ Right-arrow expands a row into its schema (roster + flow), so you navigate archi
 | `mmt logs <run-id>` | full transcript of a run |
 | `mmt init` / `mmt doctor` | set up / health-check the global environment |
 
-Flags: `--supervise auto|plan|step`, `--ascii`, `--plain` (line logs instead of the live view), `--json` (machine-readable output, for agents driving the CLI), `--dry-run` (show the lineup the lead would pick without running). Remembers the last team; `mmt <team>` skips the picker.
+Flags: `--supervise auto|plan|step`, `--ascii`, `--plain` (line logs instead of the live view), `--json` (machine-readable output, for agents driving the CLI), `--dry-run` (show the lineup the lead would pick without running). Remembers the last team; `mmt run <team>` skips the picker.
 
 ## Creating a team (agent-first)
 
@@ -111,7 +111,7 @@ The default path is describe-and-build: an agent reads your repo and drafts the 
 ### Agent-assisted (default)
 
 ```
-$ mmt new "take an epic and ship a reviewed PR, using our Notion for context"
+$ mmt new team ship-epic "take an epic and ship a reviewed PR, using our Notion for context"
 
   reading the repo...
     stack: TypeScript + React Native (Expo) · tests: vitest · CI: EAS + fastlane
@@ -135,7 +135,7 @@ $ mmt new "take an epic and ship a reviewed PR, using our Notion for context"
 > accept
 
   saved ~/.my-mini-team/teams/ship-epic.team.yaml  (+ 3 new members)
-  compiled -> /ship-epic is ready. run it:  mmt ship-epic "ENG-142"
+  compiled -> /ship-epic is ready. run it:  mmt run ship-epic "ENG-142"
 ```
 
 Under the hood the creation agent:
@@ -144,7 +144,7 @@ Under the hood the creation agent:
 - **wires and validates**: fills `consumes` / `produces`, runs the strict contract check, and only shows you a lineup that can actually deliver the team's promise.
 - **is transparent**: renders the live schema and the tool / permission footprint as it goes, so nothing is hidden.
 
-### Manual (`mmt new --manual`)
+### Manual (`mmt new team <name> --ui`)
 
 A step-by-step wizard for people who want to place every member by hand: name and describe the team, add members (reuse `@ns/name`, or define inline: kind, consumes, produces, tools, knowledge, prompt, applies_when), set the lead, choose a supervise default. The schema redraws and the contract check runs after each change.
 
@@ -158,8 +158,8 @@ A step-by-step wizard for people who want to place every member by hand: name an
 
 Changing a team must be as easy as creating one. Every parameter is editable, three ways, so you pick your speed:
 
-1. **Conversational** — `mmt edit <team>` reopens the agent builder ("make qa a gate", "switch coder to cursor", "add a doc-writer"). Best for changes you can describe.
-2. **Guided forms** — `mmt edit <team> --form` opens a structured field editor: pick the team or a member, then edit fields with the right control for each (select for kind / engine / model, multi-select for tools / knowledge, tag input for consumes / produces, multi-line for prompt). The schema redraws and the strict contract check re-runs after every change.
+1. **Conversational** — `mmt edit team <team>` reopens the agent builder ("make qa a gate", "switch coder to cursor", "add a doc-writer"). Best for changes you can describe.
+2. **Guided forms** — `mmt edit team <team> --form` opens a structured field editor: pick the team or a member, then edit fields with the right control for each (select for kind / engine / model, multi-select for tools / knowledge, tag input for consumes / produces, multi-line for prompt). The schema redraws and the strict contract check re-runs after every change.
 3. **Direct set** (scriptable, agent-friendly) — change one parameter with no wizard:
 
 ```
@@ -176,7 +176,7 @@ Everything is editable:
 UX rules the editor follows (see the CLI-UX stack below):
 - **Flags for everything**: any prompt can be skipped by passing the value, so the builder is scriptable and agent-drivable, never a dead end.
 - **Validation inline**: a bad kind, an unknown tool, or a contract break is caught at the field, not after you finish.
-- **Safe cancel and undo**: ctrl-c never leaves a half-written team; edits are staged and saved only on confirm; `mmt edit --revert` restores the last saved version.
+- **Safe cancel and undo**: ctrl-c never leaves a half-written team; edits are staged and saved only on confirm; `mmt edit team <name> --revert` restores the last saved version.
 - **Live feedback**: the schema and the contract check update on every change, so you always see the shape and whether it still holds.
 - **Fast reorder and toggle**: move a member in the roster, flip a gate, or change supervise without retyping.
 
@@ -199,7 +199,7 @@ epic -> context
 ```
 
 Two views:
-- `mmt show <team>` prints the schema plus a capability table:
+- `mmt show team <team>` prints the schema plus a capability table:
 
 ```
 member            kind        engine   integrations          in -> out
@@ -327,7 +327,7 @@ Notes:
 Teams and members are globally available, not per-project.
 
 - **Global library**: `~/.my-mini-team/` holds installed teams and members.
-- **Global skills**: compiling installs the skill into `~/.claude/skills/<team>/` so `/team` and `mmt <team>` work from any directory / project.
+- **Global skills**: compiling installs the skill into `~/.claude/skills/<team>/` so `/team` and `mmt run <team>` work from any directory / project.
 - **Install**: `mmt install @author/name` fetches the team + its member dependencies and compiles locally, so it adapts to your tools, models, Notion, repo.
 - **Naming**: `@author/name` for both teams and members. Members are the primitive; a team is a curated bundle that reuses members.
 - **Registry (v1)**: a git repo of `*.team.yaml` and `*.member.yaml`. Every team carries its auto-generated schema, so browsing the registry means reading real architectures.
@@ -411,7 +411,7 @@ What install does:
 1. Resolves the team and every member it references (its own and others' `@ns/name`).
 2. Shows a **manifest** before writing anything: the roster, and the **tool / permission footprint** (which members use bash, edit, network, or MCP servers like Notion). You approve once. This is the trust boundary for shared teams: you see what a team can touch before it lands.
 3. Compiles locally in your context into `~/.claude/skills/<team>/` (plus agents, workflow, schema). Because it compiles on your machine, it binds to your models, tools, and connected MCP servers.
-4. The team is now usable from any project: `mmt <team>` or `/team` inside Claude Code.
+4. The team is now usable from any project: `mmt run <team>` or `/team` inside Claude Code.
 
 Manage with `mmt update`, `mmt uninstall`, `mmt ls`. Versioning: pin `@ns/name@1.2` or track latest (open question #3).
 

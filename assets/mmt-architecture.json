@@ -1,0 +1,24 @@
+{
+  "title": "mmt architecture — three layers + how a run works",
+  "legend": true,
+  "roleColors": {
+    "Skill": "#ffd8a8",
+    "Agent": "#a5d8ff",
+    "Team (proprietary)": "#d0bfff",
+    "Runtime": "#b2f2bb"
+  },
+  "nodes": [
+    { "id": "skill", "label": "Skill\nSKILL.md", "role": "Skill" },
+    { "id": "agent", "label": "Agent\nmodel + skills", "role": "Agent" },
+    { "id": "team", "label": "Team\nsteps + loops", "role": "Team (proprietary)" },
+    { "id": "subagents", "label": "Claude subagents\n(via /mmt)", "role": "Runtime" }
+  ],
+  "edges": [
+    { "from": "skill", "to": "agent", "label": "plugs into" },
+    { "from": "agent", "to": "team", "label": "composes into" },
+    { "from": "team", "to": "subagents", "label": "mmt run <team>" }
+  ],
+  "groups": [
+    { "label": "mmt: skills -> agents -> teams", "nodeIds": ["skill", "agent", "team"] }
+  ]
+}

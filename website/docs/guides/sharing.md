@@ -5,21 +5,22 @@ title: Sharing teams
 
 # Sharing teams
 
-Teams are portable objects. Share them two ways: a **token** (quick, one person to another) or the **catalog** (a PR-reviewed library others browse and install).
+Teams are portable objects. Share them two ways: a **directory bundle** (quick, one person to another) or the **catalog** (a PR-reviewed library others browse and install).
 
-## Token: export / import
-
-```bash
-mmt export spec-to-prod          # prints:  mmt import 'mmt2:…'
-```
-
-The token is deterministic and **bundles the team's skill definitions**, so it recreates exactly on another machine. Send the whole `mmt import '…'` line; the recipient runs it:
+## Directory bundle: export / import
 
 ```bash
-mmt import 'mmt2:…'              # recreates the team + installs its skills
+mmt export spec-to-prod ./spec-to-prod   # writes spec-to-prod.team.yaml + agents/ + skills/
 ```
 
-`mmt export <team> --raw` gives readable YAML instead of a token.
+`mmt export <team> [dir]` writes a reviewable directory bundle — `<team>.team.yaml` plus its `agents/*.md` and `skills/<name>/SKILL.md` — into `dir` (defaults to `./<team>`). It's deterministic: it ships the team's actual definition, not an agent re-derivation.
+Hand the directory to the recipient; they review it, then install it:
+
+```bash
+mmt import ./spec-to-prod                # prints a manifest, asks for consent, then installs
+```
+
+A base64 token shared out-of-band still works as a legacy inbound form: `mmt import '<token>'`. There is no way to export one — `mmt export` always writes a bundle.
 
 ## Catalog: the shared library
 
@@ -35,10 +36,10 @@ catalog/<user>/<team>/
 Browse it on GitHub, or in the [Library](/library) page (auto-generated). Install a catalogued team:
 
 ```bash
-mmt import catalog/<user>/<team>/<team>.team.yaml
+mmt import catalog/<user>/<team>
 ```
 
-Bundled skills in the team's `skills/` folder come with it.
+Directory import installs the whole bundle — the team's `agents/` and `skills/` folders come with it.
 
 ## Contribute your team
 

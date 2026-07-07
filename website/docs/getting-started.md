@@ -31,7 +31,7 @@ mmt help
 
 ```bash
 mmt                       # home — your teams
-mmt show spec-to-prod     # the full workflow
+mmt show team spec-to-prod # the full workflow
 ```
 
 You'll see something like:
