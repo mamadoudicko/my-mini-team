@@ -15,6 +15,7 @@ const skills = require('../lib/skills');
 const agents = require('../lib/agents');
 const yaml = require('../lib/yaml');
 const { normalizeTeam, teamSkills } = require('../lib/model');
+const lineup = require('../lib/lineup');
 
 process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); });
 
@@ -55,13 +56,16 @@ function show(name) {
   }
   const team = store.loadTeam(name);
   if (!team) return notFound(name);
+  const resolved = lineup.effectiveSteps(team);
   console.log('');
-  workflowBlock(team).forEach((l) => console.log(l));
-  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(team));
+  workflowBlock(resolved).forEach((l) => console.log(l));
+  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(resolved));
   const missing = teamSkills(team).filter((n) => !skills.resolve(n));
   if (missing.length) {
     console.log('  ' + C.yellow('unknown skills: ') + missing.join(', ') + C.dim('  (define: mmt skill new <name>)'));
   }
+  const unknownAgents = lineup.unresolvedAgents(team);
+  if (unknownAgents.length) console.log('  ' + C.yellow('unknown agents: ') + unknownAgents.join(', ') + C.dim('  (create: mmt agent new <name>)'));
   console.log('');
 }
 
@@ -286,7 +290,7 @@ function importCmd(arg, opts) {
 
   const file = store.saveTeam(team.team, yamlText, { local: opts.local });
   console.log('');
-  workflowBlock(team).forEach((l) => console.log(l));
+  workflowBlock(lineup.effectiveSteps(team)).forEach((l) => console.log(l));
   console.log('\n  ' + C.green('✔ imported ') + C.cyan(team.team) + C.dim('  → ' + file));
   if (installed.length) console.log('  ' + C.dim('installed skills: ') + installed.map((n) => C.blue(n)).join(', '));
   console.log('');
@@ -325,9 +329,10 @@ function askMultiline(rl, header) {
 
 function preview(yamlText) {
   const team = normalizeTeam(yaml.parse(yamlText));
+  const resolved = lineup.effectiveSteps(team);
   console.log('');
-  workflowBlock(team).forEach((l) => console.log(l));
-  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(team) + '\n');
+  workflowBlock(resolved).forEach((l) => console.log(l));
+  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(resolved) + '\n');
   return team;
 }
 
