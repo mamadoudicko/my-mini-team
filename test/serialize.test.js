@@ -60,4 +60,14 @@ test('special characters in does are quoted and survive', () => {
   assert.strictEqual(rt.steps[0].does, 'ship: the PDF export # now');
 });
 
+test('embedded double-quote in a quoted field round-trips, stable across saves', () => {
+  const t = normalizeTeam({ team: 't', steps: [
+    { uses: 'a', does: 'ship: say "please" to the reviewer' }, // needs quoting AND has "
+  ] });
+  const rt = normalizeTeam(yaml.parse(teamToYaml(t)));
+  assert.strictEqual(rt.steps[0].does, 'ship: say "please" to the reviewer');
+  const rt2 = normalizeTeam(yaml.parse(teamToYaml(rt))); // second save must not compound backslashes
+  assert.strictEqual(rt2.steps[0].does, 'ship: say "please" to the reviewer');
+});
+
 process.stdout.write('\n' + passed + ' passed\n');

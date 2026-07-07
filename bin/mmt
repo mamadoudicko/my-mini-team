@@ -401,9 +401,12 @@ async function launchUi(name) {
   let mod;
   try { mod = await import('../lib/team-editor.mjs'); }
   catch (e) {
-    console.log('\n  ' + C.yellow('the visual editor needs its dependencies (ink, react).'));
-    console.log('  ' + C.dim('install them: ') + C.cyan('npm install -g @mamadoudicko/mmt') + C.dim('  (or `npm install` in the repo)'));
-    console.log('  ' + C.dim(e.message) + '\n');
+    if (e && (e.code === 'ERR_MODULE_NOT_FOUND' || e.code === 'MODULE_NOT_FOUND')) {
+      console.log('\n  ' + C.yellow('the visual editor needs its dependencies (ink, react).'));
+      console.log('  ' + C.dim('install them: ') + C.cyan('npm install -g @mamadoudicko/mmt') + C.dim('  (or `npm install` in the repo)') + '\n');
+    } else {
+      console.log('\n  ' + C.red('the visual editor failed to load: ') + e.message + '\n');
+    }
     return;
   }
   const steps = await mod.launchEditor(team);
