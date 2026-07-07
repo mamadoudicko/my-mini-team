@@ -37,8 +37,9 @@ const DOWN = '[B';
   unmount();
 }
 
-// --- StepEditor: tab should move focus agent → does ---
+// --- StepEditor: ↑↓ nav · ←→ change agent · space toggle (no tab) ---
 {
+  const RIGHT = '[C';
   const agentList = [{ name: 'coder', skills: ['github-pr'] }, { name: 'reviewer', skills: ['github-comment'] }];
   const step = { type: 'member', uses: 'coder', member: 'coder', does: 'build', skills: null, model: '' };
   const { stdin, lastFrame, unmount } = render(h(StepEditor, {
@@ -46,9 +47,12 @@ const DOWN = '[B';
   }));
   await tick();
   const before = lastFrame();
-  stdin.write('\t'); await tick();
-  ok('StepEditor renders', /agent/.test(before));
-  ok('StepEditor useInput fires (tab moves focus)', before !== lastFrame());
+  ok('StepEditor renders', /agent/.test(before) && /does/.test(before));
+  stdin.write(RIGHT); await tick();                 // ←→ cycles agent (cursor starts on agent)
+  ok('StepEditor ←→ changes the agent', lastFrame() !== before);
+  const beforeDown = lastFrame();
+  stdin.write(DOWN); await tick();                  // ↓ moves cursor
+  ok('StepEditor ↓ moves the cursor', lastFrame() !== beforeDown);
   unmount();
 }
 
