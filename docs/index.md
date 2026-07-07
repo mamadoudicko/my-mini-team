@@ -33,7 +33,7 @@ Compose your own agent **workflows** (teams), run them on any task, and share th
 - **Pick the model per member.** Add `model: opus` (or `sonnet`/`haiku`) on a member; override the whole run with `mmt run … --model sonnet`. Precedence: `--model` → member `model:` → team `model:` → default.
 - **Preview for free.** `mmt run <team> "…" --sim` plays a simulated tracker with no Claude calls — handy to check the flow.
 - **Members can ask you.** Mark a member `interactive: true` (or name it like `clarifier`) and it pauses to ask you questions mid-run. Any member can also end with `NEEDS INPUT:` to wait for you.
-- **Local vs global teams.** Global is the default (`~/.my-mini-team/teams/`, available anywhere); `mmt new --local` scopes to `./teams/`. A local team shadows a global one of the same name; the home list tags each.
+- **Local vs global teams.** Global is the default (`~/.my-mini-team/teams/`, available anywhere); `mmt new team <name> --local` scopes to `./teams/`. A local team shadows a global one of the same name; the home list tags each.
 - **Loops converge on a verdict.** A loop repeats until its gate member emits `VERDICT: APPROVE`, capped by `max_rounds`. The gate is picked by the member named in `until` (not by position).
 - **Share a team.** `mmt export <team> [dir]` writes a reviewable directory bundle (`team.yaml` + `agents/` + `skills/`) into `dir`.
   The recipient runs `mmt import <dir>` to review the manifest and install it; a base64 token shared out-of-band still works as a legacy inbound `mmt import '<token>'` form.
