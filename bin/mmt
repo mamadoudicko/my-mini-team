@@ -4,11 +4,10 @@ const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { C, SYM, startSpinner } = require('../lib/ui');
+const { C, SYM } = require('../lib/ui');
 const store = require('../lib/store');
 const { shapeLine, workflowBlock } = require('../lib/render');
 const runner = require('../lib/runner');
-const compose = require('../lib/compose');
 const portable = require('../lib/portable');
 const skills = require('../lib/skills');
 const agents = require('../lib/agents');
@@ -80,10 +79,6 @@ async function run(name, task, opts) {
   const team = store.loadTeam(name);
   if (!team) return notFound(name);
   if (opts.sim) return runner.run(team, task, { sim: true, fast: opts.fast });
-  if (opts.headless) {
-    console.log('  ' + C.yellow('⚠ --headless uses claude -p → Agent SDK credit / API, NOT your subscription.'));
-    return runner.run(team, task, { model: opts.model });
-  }
   if (!task) return pointer('run ' + name + (opts.model ? ' --model ' + opts.model : ''));
   pointer('run ' + name + ' "' + task + '"' + (opts.model ? ' --model ' + opts.model : ''));
 }
@@ -133,34 +128,23 @@ async function skillCmd(sub, name, opts = {}) {
       console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
       return;
     }
-    // bare: describe the change, Claude rewrites it (Anthropic skill standard)
-    const instruction = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should change about "${name}"? `));
-    if (!instruction) { console.log('\n  ' + C.dim('nothing to change.') + '\n'); return; }
-    let content;
-    try { const stop = startSpinner('updating the skill…'); content = await compose.editSkill(s.content, instruction, name); stop(); }
-    catch (e) { return composeError(e); }
-    fs.writeFileSync(s.file, content);
-    console.log('\n  ' + C.green('✔ updated ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
+    // bare: hand off to the /mmt session — interactive, on your subscription
+    const instruction = (opts.prompt || opts.desc || '').trim();
+    return pointer('edit skill ' + name + (instruction ? ' "' + instruction + '"' : ''));
   } else if (sub === 'new') {
     const existing = skills.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
-    const scope = await chooseScope(opts);
     if (opts.ui || opts.file) {   // --ui: open a template in $EDITOR
+      const scope = await chooseScope(opts);
       const template = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n\nWhat this skill does. In the description above, say "Use when …" so Claude discovers it.\n`;
       const file = skills.writeSkill(name, template, scope);
       spawnEditor(file);
       console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
       return;
     }
-    // bare: describe it, Claude writes it (Anthropic skill standard)
-    const description = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should "${name}" do? `));
-    if (!description) { console.log('\n  ' + C.dim('nothing to create.') + '\n'); return; }
-    let content;
-    try { const stop = startSpinner('writing the skill…'); content = await compose.composeSkill(name, description); stop(); }
-    catch (e) { return composeError(e); }
-    const file = skills.writeSkill(name, content, scope);
-    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
-    console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt edit skill ' + name + ' --ui') + '\n');
+    // bare: hand off to the /mmt session — interactive, on your subscription
+    const description = (opts.prompt || opts.desc || '').trim();
+    return pointer('new skill ' + name + (description ? ' "' + description + '"' : '') + (opts.local ? ' --local' : ''));
   } else {
     console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt show|edit|new skill <name>') + '  ' + C.dim('· or ') + C.cyan('mmt list skills') + '\n');
   }
@@ -196,30 +180,16 @@ async function agentCmd(sub, name, opts = {}) {
     const a = agents.resolve(name);
     if (!a) return agentMissing(name);
     console.log('\n  ' + C.blue(name) + C.dim('  [' + a.source + ']  ' + a.file) + '\n\n' + a.content + '\n');
-  } else if (sub === 'edit') {   // bare = Claude rewrite; --ui (Ink editor) is routed at dispatch
+  } else if (sub === 'edit') {   // bare = hand off to the /mmt session; --ui (Ink editor) is routed at dispatch
     const a = agents.resolve(name);
     if (!a) { console.log('\n  ' + C.yellow(`no agent "${name}"`) + C.dim('  · create it: ') + C.cyan('mmt new agent ' + name) + '\n'); return; }
-    const instruction = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should change about "${name}"? `));
-    if (!instruction) { console.log('\n  ' + C.dim('nothing to change.') + '\n'); return; }
-    const skillNames = skills.list().map((s) => s.name);
-    let content;
-    try { const stop = startSpinner('updating the agent…'); content = await compose.editAgent(a.content, instruction, name, skillNames); stop(); }
-    catch (e) { return composeError(e); }
-    fs.writeFileSync(a.file, content);
-    console.log('\n  ' + C.green('✔ updated ') + C.blue(name) + C.dim('  (' + a.file + ')') + '\n');
-  } else if (sub === 'new') {   // bare = Claude draft (auto-selects skills); --ui (Ink editor) at dispatch
+    const instruction = (opts.prompt || opts.desc || '').trim();
+    return pointer('edit agent ' + name + (instruction ? ' "' + instruction + '"' : ''));
+  } else if (sub === 'new') {   // bare = hand off to the /mmt session; --ui (Ink editor) at dispatch
     const existing = agents.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
-    const scope = await chooseScope(opts);
-    const role = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should "${name}" do (its role)? `));
-    if (!role) { console.log('\n  ' + C.dim('nothing to create.') + '\n'); return; }
-    const skillNames = skills.list().map((s) => s.name);
-    let content;
-    try { const stop = startSpinner('writing the agent…'); content = await compose.composeAgent(name, role, skillNames); stop(); }
-    catch (e) { return composeError(e); }
-    const file = agents.writeAgent(name, content, scope);
-    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
-    console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt edit agent ' + name + ' --ui') + '\n');
+    const role = (opts.prompt || opts.desc || '').trim();
+    return pointer('new agent ' + name + (role ? ' "' + role + '"' : '') + (opts.local ? ' --local' : ''));
   } else {
     console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt show|edit|new agent <name>') + '  ' + C.dim('· or ') + C.cyan('mmt list agents') + '\n');
   }
@@ -373,15 +343,6 @@ function ask(rl, q) {
   });
 }
 
-// One-shot line prompt (creates + closes its own readline). Empty when non-TTY.
-function promptLine(question) {
-  return new Promise((resolve) => {
-    if (!process.stdin.isTTY) return resolve('');
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (a) => { rl.close(); resolve((a || '').trim()); });
-  });
-}
-
 // Collect multiple lines (so a pasted multi-line description is kept whole).
 // Submits on an empty line.
 function askMultiline(rl, header) {
@@ -397,41 +358,10 @@ function askMultiline(rl, header) {
   });
 }
 
-function preview(yamlText) {
-  const team = normalizeTeam(yaml.parse(yamlText));
-  const resolved = lineup.effectiveSteps(team);
-  console.log('');
-  workflowBlock(resolved).forEach((l) => console.log(l));
-  console.log('\n  ' + C.dim('shape:') + '  ' + shapeLine(resolved) + '\n');
-  return team;
-}
-
-// Text-first: describe the workflow in plain words, the agent composes it,
-// then refine by talking. No form.
-async function newTeam(name, description, opts = {}) {
-  if (!opts.headless) return pointer('new ' + name + (description ? ' "' + description + '"' : '') + (opts.local ? ' --local' : ''));
-  console.log('\n  ' + C.bold('compose a mini team') + C.dim('  — describe how your team works, in plain words') +
-    C.dim(opts.local ? '  [local]' : '  [global]') + '\n');
-  let text = (description || '').trim() || (opts.prompt || '').trim();
-  if (!text) text = await promptLine(C.cyan(`  describe how "${name}" works: `));
-  if (!text) { console.log('\n  ' + C.dim('nothing to compose.') + '\n'); return; }
-
-  let y;
-  try {
-    const stop = startSpinner('composing your team…');
-    y = await compose.compose(text);
-    stop();
-  } catch (e) { return composeError(e); }
-  y = y.replace(/^team:.*$/m, 'team: ' + name);   // the CLI-passed name always wins over the model's guess
-
-  if (!process.stdin.isTTY) {
-    const team = preview(y);
-    const file = store.saveTeam(team.team, y, { local: opts.local });
-    console.log('  ' + C.green('✔ saved ') + C.dim(file) + '\n');
-    return;
-  }
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  await refine(rl, y, { local: opts.local });
+// Text-first: describe the workflow in plain words; the /mmt session composes
+// it interactively, on your subscription.
+function newTeam(name, description, opts = {}) {
+  return pointer('new ' + name + (description ? ' "' + description + '"' : '') + (opts.local ? ' --local' : ''));
 }
 
 // Launch the interactive Ink editor on a team, then save the edited steps back.
@@ -524,49 +454,10 @@ async function launchUiNew(name) {
   show(name);
 }
 
-async function editCmd(name, instruction, opts = {}) {
+function editCmd(name, instruction) {
   const file = store.fileOf(name);
   if (!file) return notFound(name);
-  if (!opts.headless) return pointer('edit ' + name + (instruction ? ' "' + instruction + '"' : ''));
-  let y = store.loadRaw(name);
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  if (instruction) {
-    try {
-      const stop = startSpinner('updating…');
-      y = await compose.edit(y, instruction);
-      stop();
-    } catch (e) { rl.close(); return composeError(e); }
-  } else {
-    console.log('\n  ' + C.bold('editing ') + C.cyan(name) + C.dim('  — describe changes in plain words'));
-  }
-  await refine(rl, y, { file });
-}
-
-// Shared refine loop: show the workflow, take a plain-language change, redraw.
-async function refine(rl, y, saveTo) {
-  while (true) {
-    const team = preview(y);
-    const ans = await ask(rl, C.cyan('  change it in words, or press enter to save: '));
-    if (!ans) {
-      rl.close();
-      const file = saveTo.file
-        ? store.saveAt(saveTo.file, y)
-        : store.saveTeam(team.team, y, { local: saveTo.local });
-      console.log('\n  ' + C.green('✔ saved ') + C.dim(file));
-      console.log('  ' + C.dim('run it:') + '  ' + C.cyan(`mmt run ${team.team} "your task"`) + '\n');
-      return;
-    }
-    try {
-      const stop = startSpinner('updating…');
-      y = await compose.edit(y, ans);
-      stop();
-    } catch (e) { console.log('  ' + C.red(e.message)); }
-  }
-}
-
-function composeError(e) {
-  console.log('\n  ' + C.red(e.message));
-  console.log('  ' + C.dim('this uses the `claude` CLI to compose. make sure `claude` runs in this shell.') + '\n');
+  return pointer('edit ' + name + (instruction ? ' "' + instruction + '"' : ''));
 }
 
 function help() {
@@ -587,13 +478,13 @@ function help() {
   ${C.cyan('mmt export <team> [dir]')}   write a reviewable bundle: team.yaml + agents/ + skills/ ${C.dim('(--force to overwrite)')}
   ${C.cyan('mmt import <dir>')}          install a bundle after a manifest + consent ${C.dim('(--yes for non-interactive · --force)')}
   ${C.dim('· or ')}${C.cyan("mmt import '<token>'")}${C.dim(' / ')}${C.cyan('mmt import <file>')}${C.dim(' — the legacy token/yaml/file forms')}
-  ${C.dim('flags: --local/--global (scope) · --model <opus|sonnet|haiku> · --sim · --headless')}
+  ${C.dim('flags: --local/--global (scope) · --model <opus|sonnet|haiku> · --sim')}
 `);
 }
 
 (async function main() {
   const a = process.argv.slice(2);
-  const flags = { fast: false, sim: false, local: false, global: false, help: false, headless: false, model: null, prompt: null, file: false, ui: false, force: false, yes: false };
+  const flags = { fast: false, sim: false, local: false, global: false, help: false, model: null, prompt: null, file: false, ui: false, force: false, yes: false };
   const args = [];
   let endFlags = false;
   for (let i = 0; i < a.length; i++) {
@@ -602,7 +493,6 @@ function help() {
     else if (x === '--') endFlags = true;
     else if (x === '--fast') flags.fast = true;
     else if (x === '--sim') flags.sim = true;
-    else if (x === '--headless') flags.headless = true;
     else if (x === '--local') flags.local = true;
     else if (x === '--global') flags.global = true;
     else if (x === '--file') flags.file = true;
@@ -639,12 +529,12 @@ function help() {
     else if (cmd === 'teams') home();
     else if (cmd === 'skills') skillsList();
     else if (cmd === 'agents') agentsList();
-    else if (cmd === 'run') await run(args[1], args.slice(2).join(' '), { fast: flags.fast, sim: flags.sim, headless: flags.headless, model: flags.model });
+    else if (cmd === 'run') await run(args[1], args.slice(2).join(' '), { fast: flags.fast, sim: flags.sim, model: flags.model });
     else if (cmd === 'new') {
       const t = typedArgs(args);
       if (!t) return usageError('mmt new team|agent|skill <name>');
       if (!t.name) return usageError('mmt new ' + t.type + ' <name>');
-      if (t.type === 'team') { if (flags.ui) await launchUiNew(t.name); else await newTeam(t.name, t.rest, { local: flags.local, headless: flags.headless, prompt: flags.prompt }); }
+      if (t.type === 'team') { if (flags.ui) await launchUiNew(t.name); else newTeam(t.name, t.rest, { local: flags.local }); }
       else if (t.type === 'agent') { if (flags.ui) await launchAgentUiNew(t.name); else await agentCmd('new', t.name, { desc: t.rest, prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global }); }
       else await skillCmd('new', t.name, { desc: t.rest, prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global });
     }
@@ -652,7 +542,7 @@ function help() {
       const t = typedArgs(args);
       if (!t) return usageError('mmt edit team|agent|skill <name>');
       if (!t.name) return usageError('mmt edit ' + t.type + ' <name>');
-      if (t.type === 'team') { if (flags.ui) await launchUi(t.name); else await editCmd(t.name, t.rest, { headless: flags.headless }); }
+      if (t.type === 'team') { if (flags.ui) await launchUi(t.name); else editCmd(t.name, t.rest); }
       else if (t.type === 'agent') { if (flags.ui) await launchAgentUi(t.name); else await agentCmd('edit', t.name, { desc: t.rest, prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global }); }
       else await skillCmd('edit', t.name, { desc: t.rest, prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global });   // NOT editCmd — editCmd is team-only
     }

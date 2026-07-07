@@ -8,9 +8,11 @@
 //     HOME (and cwd, so agents.js/skills.js's PROJECT source never sees the
 //     real repo) and a PATH that excludes the real `claude` binary (so we
 //     never accidentally shell out on a dev machine that has Claude Code
-//     installed). Tests that need `compose.*` to succeed install a throwaway
-//     `claude` shim on PATH that prints fixed output — this proves routing
-//     and the name-honoring rewrite without ever hitting the network.
+//     installed). There is no `claude -p` anywhere in this CLI anymore:
+//     every authoring path (`new`/`edit` team|agent|skill) just prints a
+//     `/mmt ...` pointer seed for an interactive Claude Code session and
+//     writes nothing itself — these tests assert the printed seed and that
+//     no file was written, which is all a black box can prove here.
 const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
@@ -117,23 +119,6 @@ function runCli(sb, argv, opts = {}) {
     input: opts.input !== undefined ? opts.input : '',
     timeout: opts.timeout || 15000,
   });
-}
-
-// A throwaway `claude` shim: writes a marker file when invoked, then prints
-// `output` to stdout and exits 0. No network, no real Claude Code involved.
-// `path` includes node's own directory too (the shebang needs `node` on PATH).
-function fakeClaude(output) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mmt-cli-fakeclaude-'));
-  const marker = path.join(dir, 'called.marker');
-  const script = `#!/usr/bin/env node
-require('fs').writeFileSync(${JSON.stringify(marker)}, String(Date.now()));
-process.stdout.write(${JSON.stringify(output)});
-`;
-  const file = path.join(dir, 'claude');
-  fs.writeFileSync(file, script);
-  fs.chmodSync(file, 0o755);
-  const searchPath = dir + path.delimiter + path.dirname(process.execPath);
-  return { dir, marker, path: searchPath };
 }
 
 function writeFixtureTeam(sb, name, yamlText) {
@@ -270,12 +255,12 @@ test('`mmt run <team> --sim` with no task runs the simulator, never the interact
   assert.ok(/\(sim\)/.test(r.stdout), 'expected the simulator banner');
 });
 
-test('`mmt run <team> --headless` with no task hits the headless branch, never the interactive pointer', () => {
+test('`mmt run <team> --headless` is a no-op unknown flag: prints the same pointer seed as a bare run, no warning', () => {
   const sb = sandbox();
   writeFixtureTeam(sb, 'headless-demo', MIN_TEAM_YAML('headless-demo'));
-  const r = runCli(sb, ['run', 'headless-demo', '--headless'], { timeout: 20000 });
-  assert.ok(!/Opening a Claude Code session/.test(r.stdout), 'headless must not open an interactive session');
-  assert.ok(/--headless uses claude -p/.test(r.stdout), 'expected the headless warning banner');
+  const r = runCli(sb, ['run', 'headless-demo', '--headless']);
+  assert.ok(r.stdout.includes('/mmt run headless-demo'), r.stdout);
+  assert.ok(!/claude -p/.test(r.stdout), 'there must be no claude -p warning left anywhere');
 });
 
 test('`mmt run <nonexistent>` prints notFound and hints `mmt list teams`', () => {
@@ -286,50 +271,30 @@ test('`mmt run <nonexistent>` prints notFound and hints `mmt list teams`', () =>
 
 // --- `mmt new team <name>` honors the CLI name on every headless code path --
 
-test('`mmt new team <name> --headless` pins `team:` to <name>, overriding whatever the model proposed', () => {
+test('`mmt new team <name> "<desc>" --headless` prints the `/mmt new <name> "<desc>"` seed and writes no file (--headless is a dropped no-op flag)', () => {
   const sb = sandbox();
-  const claude = fakeClaude('team: totally-wrong-name\nabout: fixture\nsteps:\n  - member: solo\n    does: a thing\n');
-  const r = runCli(sb, ['new', 'team', 'demo', 'strategist plans then coder builds', '--headless'], { path: claude.path });
-  assert.strictEqual(r.status, 0, r.stdout + r.stderr);
-  const file = path.join(sb.home, '.my-mini-team', 'teams', 'demo.team.yaml');
-  assert.ok(fs.existsSync(file), 'expected demo.team.yaml, got: ' + fs.readdirSync(path.dirname(file)).join(','));
-  const text = fs.readFileSync(file, 'utf8');
-  assert.ok(/^team: demo$/m.test(text), 'team: field must be rewritten to the CLI name:\n' + text);
-});
-
-test('`mmt new team <name> --headless` with an empty description and non-TTY stdin prints "nothing to compose" and never calls compose', () => {
-  const sb = sandbox();
-  const claude = fakeClaude('team: should-never-be-used\nsteps: []\n');
-  const r = runCli(sb, ['new', 'team', 'empty-demo', '--headless'], { path: claude.path });
-  assert.ok(/nothing to compose/.test(r.stdout), r.stdout);
-  assert.ok(!fs.existsSync(claude.marker), 'compose.compose (and therefore the claude shim) must never have been invoked');
-  assert.ok(!fs.existsSync(path.join(sb.home, '.my-mini-team', 'teams', 'empty-demo.team.yaml')));
+  const r = runCli(sb, ['new', 'team', 'demo', 'strategist plans then coder builds', '--headless']);
+  assert.ok(r.stdout.includes('/mmt new demo "strategist plans then coder builds"'), r.stdout);
+  assert.ok(!fs.existsSync(path.join(sb.home, '.my-mini-team', 'teams', 'demo.team.yaml')), 'bare `new` must not write a team file itself — it only points at the /mmt session');
 });
 
 // --- new/edit/show/delete routing: skill vs agent vs team must never swap ---
 
-const SKILL_OR_AGENT_FIXTURE =
-  '---\nname: placeholder\ndescription: a demo capability\n---\n\n# placeholder\n\nDoes a demo thing.\n';
-
-test('`mmt new skill <name> "<desc>"` routes to skillCmd(\'new\', ...) and creates a skill', () => {
+test('`mmt new skill <name> "<desc>"` routes to skillCmd(\'new\', ...): prints the `/mmt new skill` seed and writes no file', () => {
   const sb = sandbox();
-  const claude = fakeClaude(SKILL_OR_AGENT_FIXTURE);
-  const r = runCli(sb, ['new', 'skill', 'foo', 'does a thing'], { path: claude.path });
+  const r = runCli(sb, ['new', 'skill', 'foo', 'does a thing']);
   assert.strictEqual(r.status, 0, r.stdout + r.stderr);
-  const file = path.join(sb.home, '.claude', 'skills', 'foo', 'SKILL.md');
-  assert.ok(fs.existsSync(file), r.stdout);
-  assert.ok(/name: foo/.test(fs.readFileSync(file, 'utf8')));
+  assert.ok(r.stdout.includes('/mmt new skill foo "does a thing"'), r.stdout);
+  assert.ok(!fs.existsSync(path.join(sb.home, '.claude', 'skills', 'foo')), 'must not have been created as a skill');
   assert.ok(!fs.existsSync(path.join(sb.home, '.claude', 'agents', 'foo.md')), 'must not have been created as an agent');
 });
 
-test('`mmt new agent <name> "<role>"` routes to agentCmd(\'new\', ...) and creates an agent', () => {
+test('`mmt new agent <name> "<role>"` routes to agentCmd(\'new\', ...): prints the `/mmt new agent` seed and writes no file', () => {
   const sb = sandbox();
-  const claude = fakeClaude(SKILL_OR_AGENT_FIXTURE);
-  const r = runCli(sb, ['new', 'agent', 'bar', 'a role'], { path: claude.path });
+  const r = runCli(sb, ['new', 'agent', 'bar', 'a role']);
   assert.strictEqual(r.status, 0, r.stdout + r.stderr);
-  const file = path.join(sb.home, '.claude', 'agents', 'bar.md');
-  assert.ok(fs.existsSync(file), r.stdout);
-  assert.ok(/name: bar/.test(fs.readFileSync(file, 'utf8')));
+  assert.ok(r.stdout.includes('/mmt new agent bar "a role"'), r.stdout);
+  assert.ok(!fs.existsSync(path.join(sb.home, '.claude', 'agents', 'bar.md')), 'must not have been created as an agent');
   assert.ok(!fs.existsSync(path.join(sb.home, '.claude', 'skills', 'bar')), 'must not have been created as a skill');
 });
 
@@ -353,22 +318,22 @@ test('`mmt show team|agent|skill <name>` route to the right handler', () => {
   assert.ok(!/shape:/.test(skill.stdout));
 });
 
-test('`mmt edit skill <name>` routes to skillCmd(\'edit\', ...), NOT editCmd (team-only)', () => {
+test('`mmt edit skill <name> "<change>"` routes to skillCmd(\'edit\', ...), NOT editCmd (team-only)', () => {
   const sb = sandbox();
   writeFixtureSkill(sb, 'edit-skill-demo', '---\nname: edit-skill-demo\ndescription: x\n---\n\n# edit-skill-demo\n\nbody\n');
-  const r = runCli(sb, ['edit', 'skill', 'edit-skill-demo']);
-  // non-TTY, no instruction -> skillCmd prints "nothing to change."; editCmd
-  // would instead have looked up a TEAM named edit-skill-demo and failed with
-  // "no team ..." — assert we got the skill-side message, not the team-side one.
-  assert.ok(/nothing to change/.test(r.stdout), r.stdout);
+  const r = runCli(sb, ['edit', 'skill', 'edit-skill-demo', 'tighten the wording']);
+  // editCmd (team-only) would instead have looked up a TEAM named
+  // edit-skill-demo and failed with "no team ..." — assert we got the
+  // skill-side pointer seed, not the team-side miss.
+  assert.ok(r.stdout.includes('/mmt edit skill edit-skill-demo "tighten the wording"'), r.stdout);
   assert.ok(!/no team/.test(r.stdout));
 });
 
-test('`mmt edit agent <name>` routes to agentCmd(\'edit\', ...)', () => {
+test('`mmt edit agent <name> "<change>"` routes to agentCmd(\'edit\', ...)', () => {
   const sb = sandbox();
   writeFixtureAgent(sb, 'edit-agent-demo', '---\nname: edit-agent-demo\ndescription: x\n---\n\n# edit-agent-demo\n\nbody\n');
-  const r = runCli(sb, ['edit', 'agent', 'edit-agent-demo']);
-  assert.ok(/nothing to change/.test(r.stdout), r.stdout);
+  const r = runCli(sb, ['edit', 'agent', 'edit-agent-demo', 'tighten the wording']);
+  assert.ok(r.stdout.includes('/mmt edit agent edit-agent-demo "tighten the wording"'), r.stdout);
   assert.ok(!/no team/.test(r.stdout));
 });
 

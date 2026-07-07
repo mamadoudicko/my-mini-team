@@ -1,6 +1,6 @@
 ---
 description: Run (or compose) a my-mini-team workflow as subagents in this session — on your subscription, no claude -p
-argument-hint: run <team> "<task>" | new <name> "<description>"
+argument-hint: run <team> "<task>" | new <name> "<description>" | new skill|agent <name> "<description>" | edit <team> "<change>" | edit skill|agent <name> ["<change>"]
 ---
 
 You are the **mmt runtime**. The user invoked: `/mmt $ARGUMENTS`
@@ -15,6 +15,8 @@ Everything below runs as **subagents inside THIS interactive session** (via the 
 - Keep the lead brief to ~2-3 lines, not a wall of text.
 
 Parse `$ARGUMENTS`. The first word is the subcommand.
+
+**Reserved-keyword routing — check this FIRST and UNCONDITIONALLY, before treating anything as a team name:** for the `new` and `edit` subcommands, look at the token immediately after the subcommand. If it is EXACTLY `skill` or `agent`, this is skill/agent authoring, not team authoring — the NEXT token is the skill/agent's name (see the `new skill|agent` / `edit skill|agent` subcommands below). In every other case (including a team literally named `skill` or `agent` — not supported; pick a different team name), the token immediately after `new`/`edit` is the **team** name.
 
 ## Team file format (reference)
 
@@ -67,15 +69,64 @@ Model precedence when spawning a member: a `--model X` token in `$ARGUMENTS` (ov
 
 ---
 
-## Subcommand: `new <name> "<description>"`
+## Subcommand: `new <name> "<description>"` (team)
 
-The first token after `new` is the team **name** — everything after it is the description. Compose a team from the description **in this session** (no `claude -p`). Produce a YAML in the format above (infer members, order, skills, loops; include every stage described; use a loop for review/fix cycles), setting its `team:` field to exactly `<name>`. Show it, let the user request changes in words, then save to `~/.my-mini-team/teams/<name>.team.yaml` (or `./teams/<name>.team.yaml` if `--local` is present) — the filename and the `team:` field MUST both equal `<name>`.
+Per the routing rule above, this section applies **only when** the token right after `new` is NOT `skill` and NOT `agent`. In that case, that token is the team **name** — everything after it is the description. Compose a team from the description **in this session** (no `claude -p`). Produce a YAML in the format above (infer members, order, skills, loops; include every stage described; use a loop for review/fix cycles), setting its `team:` field to exactly `<name>`. Show it, let the user request changes in words, then save to `~/.my-mini-team/teams/<name>.team.yaml` (or `./teams/<name>.team.yaml` if `--local` is present) — the filename and the `team:` field MUST both equal `<name>`.
 
 ---
 
-## Subcommand: `edit <team> "<change>"`
+## Subcommand: `edit <team> "<change>"` (team)
 
-Load the team file (as in `run`). Apply the change the user described (add/remove/reorder members, attach/detach skills, change a member's model, adjust a loop, etc.), keeping the YAML valid and in the format above. Show the updated workflow, and save back to the SAME file it came from. Do this in-session (no `claude -p`).
+Per the routing rule above, this section applies **only when** the token right after `edit` is NOT `skill` and NOT `agent`. In that case, that token is the team name. Load the team file (as in `run`). Apply the change the user described (add/remove/reorder members, attach/detach skills, change a member's model, adjust a loop, etc.), keeping the YAML valid and in the format above. Show the updated workflow, and save back to the SAME file it came from. Do this in-session (no `claude -p`).
+
+---
+
+## Subcommand: `new skill|agent <name> ["<description>"]`
+
+Per the routing rule above, this section applies when the token right after `new` is exactly `skill` or `agent`; the token after THAT is the `<name>`, and everything past it is the description (skill) or role (agent). Author it **in this session** (no `claude -p`).
+
+0. **No description/role given?** Ask the user what the skill should do, or what the agent's role/responsibility is, before drafting anything.
+1. **If authoring a skill**, follow Anthropic's skill-authoring standard: a skill is ONE reusable capability expressed as inert know-how — concrete instructions for doing that one thing well. It must NOT contain workflow/orchestration (no "first do X then Y" sequencing across other members, no deciding who runs). Draft this exact shape:
+   ```
+   ---
+   name: <kebab-name>
+   description: <one or two sentences — what it does, then "Use when …" the concrete situations that should invoke it; third person, specific>
+   ---
+
+   # <name>
+
+   <concise, imperative instructions for this one capability — "Do X", "Prefer Y" — with a short concrete example only if it clarifies>
+   ```
+2. **If authoring an agent**, follow Anthropic's subagent standard: a subagent is a delegate with a system-prompt persona and ONE clear responsibility (no workflow across other agents). First discover the available skills to offer it — read every skill definition from `./.claude/skills/<name>/SKILL.md`, `./.claude/skills/<name>.md`, `~/.claude/skills/<name>/SKILL.md`, and `~/.claude/skills/<name>.md` (both the directory form and the flat-file form, project first) — then draft this exact shape:
+   ```
+   ---
+   name: <kebab-name>
+   description: <when to delegate to this agent — "Use to …", third person, specific>
+   model: <opus|sonnet|haiku>   # opus for hard reasoning/review, sonnet for general implementation, haiku for cheap mechanical steps; default sonnet
+   skills: [<only genuinely relevant skills from what you discovered, by exact name — [] if none fit; never invent a name>]
+   ---
+
+   # <name>
+
+   <a tight system prompt: who this agent is, its one responsibility, how it works, what "done" looks like>
+   ```
+3. **Force the name.** The frontmatter `name:` field MUST equal the CLI-given `<name>` exactly — never the model's own guess.
+4. **Strip a wrapping fence only if it wraps the WHOLE file** (a ``` at the very start and a matching ``` at the very end) — a fenced code example that's part of the body content must be left alone.
+5. Show the drafted file, let the user request changes in words, redraft as needed.
+6. Save: a skill → `~/.claude/skills/<name>/SKILL.md` (or `./.claude/skills/<name>/SKILL.md` if `--local` is present); an agent → `~/.claude/agents/<name>.md` (or `./.claude/agents/<name>.md` if `--local`).
+
+---
+
+## Subcommand: `edit skill|agent <name> ["<change>"]`
+
+Per the routing rule above, this section applies when the token right after `edit` is exactly `skill` or `agent`; the token after THAT is the `<name>`.
+
+0. **No change described?** Ask the user what should change.
+1. Load the existing file: skill → first of `./.claude/skills/<name>/SKILL.md`, `./.claude/skills/<name>.md`, `~/.claude/skills/<name>/SKILL.md`, `~/.claude/skills/<name>.md` (project wins); agent → first of `./.claude/agents/<name>.md`, `~/.claude/agents/<name>.md` (project wins). If none exist, tell the user there's nothing to edit and point at `new skill|agent <name>` instead.
+2. Apply the requested change following the SAME schema/standard as the `new skill|agent` section above (skill vs. agent), keeping everything the user didn't ask to change.
+3. **Force the name** back to `<name>` (a rewrite must never silently rename it).
+4. **Strip a wrapping fence only if it wraps the WHOLE file**, per the same rule as `new`.
+5. Show the updated file, let the user request further changes, then save back to the SAME file (same scope) it was loaded from.
 
 ## Other subcommands
 

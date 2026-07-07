@@ -26,7 +26,6 @@ title: Reference
 | --- | --- |
 | `--model opus\|sonnet\|haiku` | override the model for the whole run |
 | `--sim` | offline simulated preview (no Claude calls, no cost) |
-| `--headless` | run via `claude -p` — **off-subscription** (Agent SDK credit) |
 
 ## Team file format
 
