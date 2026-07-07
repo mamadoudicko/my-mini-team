@@ -135,32 +135,39 @@ async function skillCmd(sub, name, opts = {}) {
   } else if (sub === 'edit') {
     const s = skills.resolve(name);
     if (!s) { console.log('\n  ' + C.yellow(`no skill "${name}"`) + C.dim('  · create it: ') + C.cyan('mmt skill new ' + name) + '\n'); return; }
-    spawnEditor(s.file);
-    console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
+    if (opts.ui || opts.file) {   // --ui: edit it yourself in $EDITOR
+      spawnEditor(s.file);
+      console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
+      return;
+    }
+    // bare: describe the change, Claude rewrites it (Anthropic skill standard)
+    const instruction = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should change about "${name}"? `));
+    if (!instruction) { console.log('\n  ' + C.dim('nothing to change.') + '\n'); return; }
+    let content;
+    try { const stop = startSpinner('updating the skill…'); content = await compose.editSkill(s.content, instruction, name); stop(); }
+    catch (e) { return composeError(e); }
+    fs.writeFileSync(s.file, content);
+    console.log('\n  ' + C.green('✔ updated ') + C.blue(name) + C.dim('  (' + s.file + ')') + '\n');
   } else if (sub === 'new') {
     const existing = skills.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
-    // Where to save: --local / --global, else ask (default global). Native .claude/skills.
     const scope = await chooseScope(opts);
-    // Prompt-authoring: a description (positional or --prompt) generates the SKILL.md.
-    // `--file` forces the blank template. No description → template (current default).
-    const description = (opts.prompt || opts.desc || '').trim();
-    if (description && !opts.file) {
-      let content;
-      try {
-        const stop = startSpinner('writing the skill…');
-        content = await compose.composeSkill(name, description);
-        stop();
-      } catch (e) { return composeError(e); }
-      const file = skills.writeSkill(name, content, scope);
-      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
-      console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt skill edit ' + name) + '\n');
+    if (opts.ui || opts.file) {   // --ui: open a template in $EDITOR
+      const template = `---\nname: ${name}\ndescription: \n---\n\n# ${name}\n\nWhat this skill does. In the description above, say "Use when …" so Claude discovers it.\n`;
+      const file = skills.writeSkill(name, template, scope);
+      spawnEditor(file);
+      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
       return;
     }
-    const template = `---\nname: ${name}\ndescription: ${opts.desc || ''}\n---\n\n# ${name}\n\nDescribe what this skill does and how a member should use it.\n`;
-    const file = skills.writeSkill(name, template, scope);
-    spawnEditor(file);
-    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
+    // bare: describe it, Claude writes it (Anthropic skill standard)
+    const description = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should "${name}" do? `));
+    if (!description) { console.log('\n  ' + C.dim('nothing to create.') + '\n'); return; }
+    let content;
+    try { const stop = startSpinner('writing the skill…'); content = await compose.composeSkill(name, description); stop(); }
+    catch (e) { return composeError(e); }
+    const file = skills.writeSkill(name, content, scope);
+    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
+    console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt skill edit ' + name + ' --ui') + '\n');
   } else {
     console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt skill show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt skills') + '\n');
   }
@@ -196,35 +203,30 @@ async function agentCmd(sub, name, opts = {}) {
     const a = agents.resolve(name);
     if (!a) return agentMissing(name);
     console.log('\n  ' + C.blue(name) + C.dim('  [' + a.source + ']  ' + a.file) + '\n\n' + a.content + '\n');
-  } else if (sub === 'edit') {
+  } else if (sub === 'edit') {   // bare = Claude rewrite; --ui (Ink editor) is routed at dispatch
     const a = agents.resolve(name);
     if (!a) { console.log('\n  ' + C.yellow(`no agent "${name}"`) + C.dim('  · create it: ') + C.cyan('mmt agent new ' + name) + '\n'); return; }
-    spawnEditor(a.file);
-    console.log('\n  ' + C.green('✔ edited ') + C.blue(name) + C.dim('  (' + a.file + ')') + '\n');
-  } else if (sub === 'new') {
+    const instruction = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should change about "${name}"? `));
+    if (!instruction) { console.log('\n  ' + C.dim('nothing to change.') + '\n'); return; }
+    const skillNames = skills.list().map((s) => s.name);
+    let content;
+    try { const stop = startSpinner('updating the agent…'); content = await compose.editAgent(a.content, instruction, name, skillNames); stop(); }
+    catch (e) { return composeError(e); }
+    fs.writeFileSync(a.file, content);
+    console.log('\n  ' + C.green('✔ updated ') + C.blue(name) + C.dim('  (' + a.file + ')') + '\n');
+  } else if (sub === 'new') {   // bare = Claude draft (auto-selects skills); --ui (Ink editor) at dispatch
     const existing = agents.resolve(name);
     if (existing) { console.log('\n  ' + C.dim(`"${name}" exists [${existing.source}] — opening it`) + '\n'); spawnEditor(existing.file); return; }
-    // Where to save: --local / --global, else ask (default global). Native .claude/agents.
     const scope = await chooseScope(opts);
-    // Prompt-authoring: a role (positional or --prompt) generates the subagent .md.
-    // `--file` forces the blank template. No role → template.
-    const description = (opts.prompt || opts.desc || '').trim();
-    if (description && !opts.file) {
-      let content;
-      try {
-        const stop = startSpinner('writing the agent…');
-        content = await compose.composeAgent(name, description);
-        stop();
-      } catch (e) { return composeError(e); }
-      const file = agents.writeAgent(name, content, scope);
-      console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
-      console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt agent edit ' + name) + '\n');
-      return;
-    }
-    const template = `---\nname: ${name}\ndescription: ${opts.desc || ''}\nmodel: sonnet\nskills: []\n---\n\n# ${name}\n\nDescribe this agent's role — who it is, what it owns, and how it should work.\n`;
-    const file = agents.writeAgent(name, template, scope);
-    spawnEditor(file);
-    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
+    const role = (opts.prompt || opts.desc || '').trim() || await promptLine(C.cyan(`  what should "${name}" do (its role)? `));
+    if (!role) { console.log('\n  ' + C.dim('nothing to create.') + '\n'); return; }
+    const skillNames = skills.list().map((s) => s.name);
+    let content;
+    try { const stop = startSpinner('writing the agent…'); content = await compose.composeAgent(name, role, skillNames); stop(); }
+    catch (e) { return composeError(e); }
+    const file = agents.writeAgent(name, content, scope);
+    console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')'));
+    console.log('  ' + C.dim('review/refine:') + ' ' + C.cyan('mmt agent edit ' + name + ' --ui') + '\n');
   } else {
     console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt agent show|edit|new <name>') + '  ' + C.dim('· or ') + C.cyan('mmt agents') + '\n');
   }
@@ -309,6 +311,15 @@ function ask(rl, q) {
   return new Promise((r) => {
     try { rl.question(q, (a) => r(a.trim())); }
     catch (e) { r(''); } // stdin closed (e.g. piped EOF) -> treat as enter/save
+  });
+}
+
+// One-shot line prompt (creates + closes its own readline). Empty when non-TTY.
+function promptLine(question) {
+  return new Promise((resolve) => {
+    if (!process.stdin.isTTY) return resolve('');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, (a) => { rl.close(); resolve((a || '').trim()); });
   });
 }
 
@@ -439,6 +450,49 @@ async function launchAgentUi(name) {
   console.log('\n  ' + C.green('✔ saved ') + C.blue(agent.name) + C.dim('  (' + agent.file + ')') + '\n');
 }
 
+// Dynamically load the Ink editor module, or print a friendly message + return null.
+async function loadUiModule() {
+  try { return await import('../lib/team-editor.mjs'); }
+  catch (e) {
+    if (e && (e.code === 'ERR_MODULE_NOT_FOUND' || e.code === 'MODULE_NOT_FOUND')) {
+      console.log('\n  ' + C.yellow('the visual editor needs its dependencies (ink, react).'));
+      console.log('  ' + C.dim('install them: ') + C.cyan('npm install -g @mamadoudicko/mmt') + '\n');
+    } else { console.log('\n  ' + C.red('the visual editor failed to load: ') + e.message + '\n'); }
+    return null;
+  }
+}
+
+// Create a NEW agent through the Ink editor (blank template → checkboxes).
+async function launchAgentUiNew(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt agent new <name> --ui') + '\n'); return; }
+  if (agents.resolve(name)) { console.log('\n  ' + C.dim(`"${name}" already exists — edit it: `) + C.cyan('mmt agent edit ' + name + ' --ui') + '\n'); return; }
+  const scope = await chooseScope({});
+  const mod = await loadUiModule();
+  if (!mod) return;
+  const patch = await mod.launchAgentEditor({ name, description: '', model: '', skills: [], body: '' });
+  if (!patch) { console.log('\n  ' + C.dim('closed — nothing created.') + '\n'); return; }
+  const { agentToMd } = require('../lib/serialize');
+  const md = agentToMd({ name, description: patch.description, model: patch.model, skills: patch.skills, body: patch.description });
+  const file = agents.writeAgent(name, md, scope);
+  console.log('\n  ' + C.green('✔ created ') + C.blue(name) + C.dim('  [' + (scope.local ? 'project' : 'user') + ']  (' + file + ')') + '\n');
+}
+
+// Create a NEW team through the Ink editor (blank steps → build it up).
+async function launchUiNew(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt team new <name> --ui') + '\n'); return; }
+  if (store.loadTeam(name)) { console.log('\n  ' + C.dim(`"${name}" already exists — edit it: `) + C.cyan('mmt team edit ' + name + ' --ui') + '\n'); return; }
+  const scope = await chooseScope({});
+  const mod = await loadUiModule();
+  if (!mod) return;
+  const team = { team: name, about: '', steps: [] };
+  const steps = await mod.launchEditor(team);
+  if (!steps) { console.log('\n  ' + C.dim('closed — nothing created.') + '\n'); return; }
+  const { teamToYaml } = require('../lib/serialize');
+  const file = store.saveTeam(name, teamToYaml({ ...team, steps }), { local: scope.local });
+  console.log('\n  ' + C.green('✔ created ') + C.cyan(name) + C.dim('  (' + file + ')'));
+  show(name);
+}
+
 async function editCmd(name, instruction, opts = {}) {
   const file = store.fileOf(name);
   if (!file) return notFound(name);
@@ -489,23 +543,18 @@ function help() {
   ${C.bold('mmt')} ${C.dim('— compose, reuse, and run your mini teams (agent workflows)')}
 
   ${C.cyan('mmt')}                        home: discover your teams
-  ${C.cyan('mmt show <team>')}            see a team's full workflow (steps · skills · loops)
-  ${C.cyan('mmt run <team> "task"')}      run on your subscription → shows the /mmt command for Claude Code
-  ${C.dim('                            --model <opus|sonnet|haiku> · --sim (offline, no cost) · --headless (off-sub)')}
-  ${C.cyan('mmt new ["describe it"]')}    compose a team → runs on your subscription in Claude Code (--local for this folder)
-  ${C.cyan('mmt team edit <team>')}        open the interactive team editor (default) · add "change" for conversational
-  ${C.cyan('mmt agent edit <name> --ui')} open the interactive agent editor (description · model · skills)
-  ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
+  ${C.cyan('mmt run <team> "task"')}      run a team on your subscription (via Claude Code)
+  ${C.cyan('mmt show <team>')}            see a team's workflow (steps · skills · loops)
+
+  ${C.dim('authoring — ')}${C.bold('bare')}${C.dim(' = describe it, Claude drafts it · ')}${C.bold('--ui')}${C.dim(' = edit it yourself')}
+  ${C.cyan('mmt skill new|edit <name>')}    a skill   ${C.dim('· --ui opens $EDITOR on the SKILL.md')}
+  ${C.cyan('mmt agent new|edit <name>')}    an agent  ${C.dim('· --ui opens the checkbox editor (desc · model · skills)')}
+  ${C.cyan('mmt team  new|edit <name>')}    a team    ${C.dim('· --ui opens the step editor (agents · loops · skills)')}
+  ${C.cyan('mmt skills')} ${C.dim('·')} ${C.cyan('mmt agents')}      list your skills / agents ${C.dim('(add show <name> to print one)')}
+
   ${C.cyan('mmt delete <team>')}          delete a team
-  ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
-  ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description → .claude/skills (--local/--global, or asks)
-  ${C.cyan('mmt skill edit <name>')}      edit a skill's definition (or show)
-  ${C.cyan('mmt agents')}                 list native subagents Claude can delegate to
-  ${C.cyan('mmt agent new <name> "role"')} write a subagent .md from a role → .claude/agents (--local/--global, or asks)
-  ${C.cyan('mmt agent edit <name>')}      edit a subagent's definition (or show)
-  ${C.cyan('mmt export <team> [--raw]')}  portable token (bundles skill definitions) or --raw yaml
-  ${C.cyan("mmt import '<token>'")}       recreate a team from a token, yaml, or file
-  ${C.dim('flags: --fast · --local (save to this folder instead of global)')}
+  ${C.cyan('mmt export <team> [--raw]')}  portable token, or --raw yaml ${C.dim('·')} ${C.cyan("mmt import '<token>'")}
+  ${C.dim('flags: --local/--global (scope) · --model <opus|sonnet|haiku> · --sim · --headless')}
 `);
 }
 
@@ -544,19 +593,19 @@ function help() {
     else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
     else if (cmd === 'skills') skillsList();
-    else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
+    else if (cmd === 'skill') await skillCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global });
     else if (cmd === 'agents') agentsList();
     else if (cmd === 'agent') {
+      // --ui → the Ink agent editor; bare → Claude prompt (in agentCmd)
       if (flags.ui && args[1] === 'edit') await launchAgentUi(args[2]);
-      else await agentCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, local: flags.local, global: flags.global });
+      else if (flags.ui && args[1] === 'new') await launchAgentUiNew(args[2]);
+      else await agentCmd(args[1], args[2], { desc: args.slice(3).join(' '), prompt: flags.prompt, file: flags.file, ui: flags.ui, local: flags.local, global: flags.global });
     }
     else if (cmd === 'team') {
       const sub = args[1];
-      if (sub === 'edit') {                       // UI is the DEFAULT mode; an instruction → conversational
-        const instruction = args.slice(3).join(' ');
-        if (instruction) await editCmd(args[2], instruction, { headless: flags.headless });
-        else await launchUi(args[2]);
-      } else if (sub === 'new') await newTeam(args.slice(2).join(' '), { local: flags.local, headless: flags.headless });
+      // --ui → the Ink team editor; bare → prompt (conversational / compose)
+      if (sub === 'edit') { if (flags.ui) await launchUi(args[2]); else await editCmd(args[2], args.slice(3).join(' '), { headless: flags.headless }); }
+      else if (sub === 'new') { if (flags.ui) await launchUiNew(args[2]); else await newTeam(args.slice(2).join(' '), { local: flags.local, headless: flags.headless }); }
       else if (sub === 'run') await run(args[2], args.slice(3).join(' '), { fast: flags.fast, sim: flags.sim, headless: flags.headless, model: flags.model });
       else if (sub === 'show') show(args[2]);
       else if (!sub || sub === 'ls' || sub === 'list') home();
