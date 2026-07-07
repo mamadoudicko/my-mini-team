@@ -392,6 +392,28 @@ async function newTeam(rawArg, opts = {}) {
   await refine(rl, y, { local: opts.local });
 }
 
+// Launch the interactive Ink editor on a team, then save the edited steps back.
+async function launchUi(name) {
+  if (!name) { console.log('\n  ' + C.dim('usage:') + '  ' + C.cyan('mmt edit <team> --ui') + '\n'); return; }
+  const team = store.loadTeam(name);
+  if (!team) return notFound(name);
+  const file = store.fileOf(name);
+  let mod;
+  try { mod = await import('../lib/team-editor.mjs'); }
+  catch (e) {
+    console.log('\n  ' + C.yellow('the visual editor needs its dependencies (ink, react).'));
+    console.log('  ' + C.dim('install them: ') + C.cyan('npm install -g @mamadoudicko/mmt') + C.dim('  (or `npm install` in the repo)'));
+    console.log('  ' + C.dim(e.message) + '\n');
+    return;
+  }
+  const steps = await mod.launchEditor(team);
+  if (!steps) { console.log('\n  ' + C.dim('closed — no changes saved.') + '\n'); return; }
+  const { teamToYaml } = require('../lib/serialize');
+  store.saveAt(file, teamToYaml({ ...team, steps }));
+  console.log('\n  ' + C.green('✔ saved ') + C.dim(file));
+  show(name);
+}
+
 async function editCmd(name, instruction, opts = {}) {
   const file = store.fileOf(name);
   if (!file) return notFound(name);
@@ -447,6 +469,7 @@ function help() {
   ${C.dim('                            --model <opus|sonnet|haiku> · --sim (offline, no cost) · --headless (off-sub)')}
   ${C.cyan('mmt new ["describe it"]')}    compose a team → runs on your subscription in Claude Code (--local for this folder)
   ${C.cyan('mmt edit <team> ["change"]')} change a team by describing it → on your subscription in Claude Code
+  ${C.cyan('mmt edit <team> --ui')}       open the interactive editor (reorder · loop · delete · save)
   ${C.cyan('mmt delete <team>')}          delete a team
   ${C.cyan('mmt skills')}                 list reusable skills you can plug into a member
   ${C.cyan('mmt skill new <name> "desc"')} write a SKILL.md from a description → .claude/skills (--local/--global, or asks)
@@ -462,7 +485,7 @@ function help() {
 
 (async function main() {
   const a = process.argv.slice(2);
-  const flags = { fast: false, sim: false, local: false, global: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false };
+  const flags = { fast: false, sim: false, local: false, global: false, help: false, raw: false, headless: false, model: null, prompt: null, file: false, ui: false };
   const args = [];
   let endFlags = false;
   for (let i = 0; i < a.length; i++) {
@@ -476,6 +499,7 @@ function help() {
     else if (x === '--global') flags.global = true;
     else if (x === '--raw' || x === '--yaml') flags.raw = true;
     else if (x === '--file') flags.file = true;
+    else if (x === '--ui' || x === '--editor') flags.ui = true;
     else if (x === '--help' || x === '-h') flags.help = true;
     else if (x === '--model') flags.model = a[++i] || null;
     else if (x === '--prompt') flags.prompt = a[++i] || null;
@@ -489,7 +513,7 @@ function help() {
     else if (cmd === 'show') show(args[1]);
     else if (cmd === 'run') await run(args[1], args.slice(2).join(' '), { fast: flags.fast, sim: flags.sim, headless: flags.headless, model: flags.model });
     else if (cmd === 'new') await newTeam(args.slice(1).join(' '), { local: flags.local, headless: flags.headless });
-    else if (cmd === 'edit') await editCmd(args[1], args.slice(2).join(' '), { headless: flags.headless });
+    else if (cmd === 'edit') { if (flags.ui) await launchUi(args[1]); else await editCmd(args[1], args.slice(2).join(' '), { headless: flags.headless }); }
     else if (cmd === 'delete' || cmd === 'rm') delTeam(args[1]);
     else if (cmd === 'export') exportCmd(args[1], { raw: flags.raw });
     else if (cmd === 'import') importCmd(args[1], { local: flags.local });
