@@ -19,7 +19,7 @@ mmt run <team> "your task"
 ## Choose the model
 
 ```bash
-mmt run spec-to-prod "…" --model opus        # force one model for the whole run
+mmt run <team> "…" --model opus              # force one model for the whole run
 ```
 
 Precedence: `--model` → member `model:` → team `model:` → your default. Set per-member models for cost/speed (e.g. reviewer on `sonnet`, coder on `opus`).
@@ -27,7 +27,7 @@ Precedence: `--model` → member `model:` → team `model:` → your default. Se
 ## Preview for free
 
 ```bash
-mmt run spec-to-prod "…" --sim
+mmt run <team> "…" --sim
 ```
 
 A simulated tracker with **no Claude calls** — handy to check the shape and timing of a workflow.

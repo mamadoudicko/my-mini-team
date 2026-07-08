@@ -5,7 +5,7 @@ title: Getting started
 
 # Getting started
 
-Two minutes: install `mmt`, look at a team, run it.
+Two minutes: install `mmt`, create a team, run it.
 
 ## Install
 
@@ -17,7 +17,7 @@ npm i -g @mamadoudicko/mmt      # puts `mmt` on your PATH
 npx @mamadoudicko/mmt
 ```
 
-Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` and seeds the starter skills and teams into `~/.my-mini-team/` (missing files only — it never overwrites your edits). Opt out with `MMT_NO_POSTINSTALL=1`.
+Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` (the one that drives `mmt run`/`new`/`edit` inside a Claude Code session). It never touches your own teams, agents, or skills. Opt out with `MMT_NO_POSTINSTALL=1`.
 
 <details>
 <summary>Install from source (for contributing)</summary>
@@ -37,12 +37,18 @@ Check it works:
 mmt help
 ```
 
-## Look at a team
+## Create a team
 
-`mmt` ships with example teams. List them, then inspect one:
+Your library starts empty — describe a workflow in plain words and Claude composes it:
 
 ```bash
-mmt                       # home — your teams
+mmt                       # home — your teams (empty on a fresh install)
+mmt new team spec-to-prod "strategist plans, coder builds and opens a PR, reviewer loops with the coder until approved, then qa runs the tests"
+```
+
+Then look at what got composed:
+
+```bash
 mmt show team spec-to-prod # the full workflow
 ```
 

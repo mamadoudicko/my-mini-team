@@ -10,14 +10,14 @@ Teams are portable objects. Share a **directory bundle** — quick, one person t
 ## Directory bundle: export / import
 
 ```bash
-mmt export spec-to-prod ./spec-to-prod   # writes spec-to-prod.team.yaml + agents/ + skills/
+mmt export my-team ./my-team             # writes my-team.team.yaml + agents/ + skills/
 ```
 
 `mmt export <team> [dir]` writes a reviewable directory bundle — `<team>.team.yaml` plus its `agents/*.md` and `skills/<name>/SKILL.md` — into `dir` (defaults to `./<team>`). It's deterministic: it ships the team's actual definition, not an agent re-derivation.
 Hand the directory to the recipient; they review it, then install it:
 
 ```bash
-mmt import ./spec-to-prod                # prints a manifest, asks for consent, then installs
+mmt import ./my-team                     # prints a manifest, asks for consent, then installs
 ```
 
 A base64 token shared out-of-band still works as a legacy inbound form: `mmt import '<token>'`. There is no way to export one — `mmt export` always writes a bundle.

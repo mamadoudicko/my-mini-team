@@ -55,8 +55,8 @@ Both update the definition wherever it's plugged in — no need to touch each ag
 By talking:
 
 ```bash
-mmt edit team spec-to-prod "give the coder a deploy skill"
-mmt edit team spec-to-prod "the reviewer should also post on github"
+mmt edit team my-team "give the coder a deploy skill"
+mmt edit team my-team "the reviewer should also post on github"
 ```
 
 Or in the team file:
