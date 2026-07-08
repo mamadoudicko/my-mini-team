@@ -24,7 +24,7 @@ approved, then qa runs the tests
 Save and close. The agent composes the team and shows it:
 
 ```
-spec-to-prod   take an agreed spec to prod — plan, build, review loop, qa, audit (no spec challenging; we already know what we want)
+my-team   plan, build, review loop, qa, audit — from a task to a reviewed PR
 
 1. strategist
 2. coder        ·github-pr ·ticket-status
@@ -68,8 +68,8 @@ mmt run my-team "a real task"           # for real, on your subscription
 Same idea, by talking:
 
 ```bash
-mmt edit team spec-to-prod "run the coder on opus and the reviewer on sonnet"
-mmt edit team spec-to-prod "make qa a loop that retries until tests pass"
+mmt edit team my-team "run the coder on opus and the reviewer on sonnet"
+mmt edit team my-team "make qa a loop that retries until tests pass"
 ```
 
 ## Pick models per member
@@ -77,7 +77,7 @@ mmt edit team spec-to-prod "make qa a loop that retries until tests pass"
 Add a `model:` to any member, or override a whole run:
 
 ```bash
-mmt run spec-to-prod "…" --model sonnet
+mmt run my-team "…" --model sonnet
 ```
 
 Precedence: `--model` (run) → member `model:` → team `model:` → your default. See [Running](/guides/running).

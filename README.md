@@ -32,7 +32,7 @@ npm i -g @mamadoudicko/mmt      # puts `mmt` on your PATH
 npx @mamadoudicko/mmt
 ```
 
-Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` and seeds the starter skills and teams into `~/.my-mini-team/` (missing files only — it never overwrites your edits). Opt out with `MMT_NO_POSTINSTALL=1`.
+Installing runs a **postinstall** that sets up the runtime so everything works out of the box: it installs the `/mmt` slash command into `~/.claude/commands/` (the one that drives `mmt run`/`new`/`edit` inside a Claude Code session). It never touches your own teams, agents, or skills. Opt out with `MMT_NO_POSTINSTALL=1`.
 
 <details>
 <summary>Install from source (for contributing)</summary>
@@ -47,10 +47,10 @@ npm link          # puts `mmt` on your PATH  (or just run: node bin/mmt …)
 ## Quick start
 
 ```bash
-mmt                                         # home: discover your teams
-mmt show team spec-to-prod                  # the full workflow (steps · skills · loops)
-mmt run idea-to-prod "add SMS reminders to booking confirmations"    # run it, watch every step live
-mmt new team <name>                         # compose a new team (describe it in plain words)
+mmt                                         # home: discover your teams (empty on a fresh install)
+mmt new team my-team "strategist plans, coder builds and opens a PR, reviewer loops until approved, then qa runs tests"
+mmt show team my-team                       # the full workflow (steps · skills · loops)
+mmt run my-team "add SMS reminders to booking confirmations"    # run it, watch every step live
 ```
 
 ## The model
@@ -102,7 +102,7 @@ Skills are real definitions, not labels. A member plugs one in by name or path; 
 ```bash
 mmt skills                    # discovers mmt skills AND your existing Claude Code skills
 mmt edit skill github-pr      # elementary edit — opens the definition in your editor
-mmt edit team spec-to-prod "plug the deploy skill into the coder"
+mmt edit team my-team "plug the deploy skill into the coder"
 ```
 
 ## Local vs global
@@ -121,8 +121,8 @@ The recipient reviews the bundle, then `mmt import <dir>` installs it after prin
 A base64 token shared out-of-band still works as a legacy inbound form: `mmt import '<token>'`.
 
 ```bash
-mmt export spec-to-prod ./spec-to-prod   # writes spec-to-prod.team.yaml + agents/ + skills/
-mmt import ./spec-to-prod                # review the manifest, then install
+mmt export my-team ./my-team             # writes my-team.team.yaml + agents/ + skills/
+mmt import ./my-team                     # review the manifest, then install
 ```
 
 ## Observability

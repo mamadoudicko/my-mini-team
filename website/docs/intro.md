@@ -15,7 +15,7 @@ title: What is my-mini-team?
 `my-mini-team` is three stacked layers: native **skills** (`SKILL.md` capabilities) plug into **agents** (roles with a model and a default skill set), and agents compose into **teams** — mmt's own, proprietary layer — as ordered steps and loops. Instead of prompting one agent over and over, you **describe a team once** and then **run that team on any task**. `mmt run <team>` spawns the team's agents as in-session Claude subagents on your subscription — via the `/mmt` skill, not `claude -p` — and you watch every step.
 
 ```
-mmt run idea-to-prod "add SMS reminders to booking confirmations"
+mmt run <team> "add SMS reminders to booking confirmations"
 ```
 
 A team is just a small, readable file. You compose it by talking, reuse it by name, and share it so others can install it in one command.

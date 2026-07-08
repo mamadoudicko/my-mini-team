@@ -1,6 +1,6 @@
 {
   "name": "@mamadoudicko/mmt",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Compose, reuse, and run your own agent workflows (mini teams). Name them, run them on any task, watch each step.",
   "bin": {
     "mmt": "bin/mmt"
