@@ -9,7 +9,6 @@
     "bin",
     "lib",
     "scripts",
-    "teams",
     "skills",
     ".claude/commands",
     "README.md",
@@ -24,7 +23,6 @@
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "demo": "node bin/mmt run spec-to-prod \"ship https://notion.so/Booking-history-PDF-export-1a2b3c4\" --sim",
     "test": "node test/editor.test.js && node test/serialize.test.js && node test/editor-forms.test.js && node test/editor-ui.test.mjs && node test/bundle.test.js && node test/cli.test.js"
   },
   "publishConfig": {
